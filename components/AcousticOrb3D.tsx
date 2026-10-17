@@ -4,7 +4,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { CaretDown as ChevronDown, CaretUp as ChevronUp, DownloadSimple as Download, Cube as Box, Stack as Layers, Camera } from '@phosphor-icons/react';
+import {
+  CaretDown as ChevronDown,
+  CaretUp as ChevronUp,
+  DownloadSimple as Download,
+  Cube as Box,
+  Stack as Layers,
+  Camera,
+} from '@phosphor-icons/react';
 
 export type FinishPreset = 'gold' | 'lunar' | 'crystal' | 'clay';
 export type CameraPreset = 'studio' | 'zenith' | 'macro';
@@ -176,8 +183,8 @@ export function AcousticOrb3D({
       renderer.shadowMap.enabled = !isHeadless;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     } catch {
-      setWebglFallback(true);
-      return;
+      const fallbackFrame = requestAnimationFrame(() => setWebglFallback(true));
+      return () => cancelAnimationFrame(fallbackFrame);
     }
 
     const width = mount.clientWidth || 640;
@@ -378,7 +385,12 @@ export function AcousticOrb3D({
       particleMat,
       particleCount
     );
-    const particleSeeds: { angle: number; radius: number; y: number; speed: number }[] = [];
+    const particleSeeds: {
+      angle: number;
+      radius: number;
+      y: number;
+      speed: number;
+    }[] = [];
 
     for (let i = 0; i < particleCount; i++) {
       const angle = (i / particleCount) * Math.PI * 2;
@@ -475,7 +487,9 @@ export function AcousticOrb3D({
     window.addEventListener('resize', handleResize);
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(mount);
-    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const motionPreference = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    );
 
     // Animation Loop with Exponential Damping
     const clock = new THREE.Clock();
@@ -485,7 +499,10 @@ export function AcousticOrb3D({
     const animate = () => {
       animId = requestAnimationFrame(animate);
       const st = stateRef.current;
-      if (!st.isVisible || document.hidden) { clock.getDelta(); return; }
+      if (!st.isVisible || document.hidden) {
+        clock.getDelta();
+        return;
+      }
       const frameDelta = Math.min(clock.getDelta(), 0.1);
       const delta = motionPreference.matches ? 0 : frameDelta;
       const elapsed = motionPreference.matches ? 0 : clock.getElapsedTime();

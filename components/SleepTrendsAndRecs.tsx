@@ -1,8 +1,19 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Moon, Sun, TrendUp as TrendingUp, Clock, CheckCircle as CheckCircle2, Plus, Sparkle as Sparkles, ThermometerSimple as Thermometer, CalendarBlank as Calendar } from '@phosphor-icons/react';
+import React, { useState, useMemo } from 'react';
+import {
+  Moon,
+  Sun,
+  TrendUp as TrendingUp,
+  Clock,
+  CheckCircle as CheckCircle2,
+  Plus,
+  Sparkle as Sparkles,
+  ThermometerSimple as Thermometer,
+  CalendarBlank as Calendar,
+} from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useClientReady } from '@/hooks/use-client-ready';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
 export interface DailySleepRecord {
@@ -163,11 +174,7 @@ export function SleepTrendsAndRecs({
     {}
   );
   const [babyAgeWeeks, setBabyAgeWeeks] = useState<number>(8);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  const hasMounted = useClientReady();
 
   const visibleData = useMemo(() => {
     return sleepRecords.slice(-rangeDays);
@@ -213,7 +220,9 @@ export function SleepTrendsAndRecs({
       const lastIndex = next.length - 1;
       const last = { ...next[lastIndex] };
       if (kind === 'night') {
-        last.nightHours = Number(Math.min(13, last.nightHours + hours).toFixed(1));
+        last.nightHours = Number(
+          Math.min(13, last.nightHours + hours).toFixed(1)
+        );
         last.longestStretchHours = Number(
           Math.max(last.longestStretchHours, last.nightHours * 0.55).toFixed(1)
         );
@@ -238,90 +247,75 @@ export function SleepTrendsAndRecs({
   const minsUntilSweetSpot = Math.max(0, targetWakeWindowMins - minsSinceSleep);
 
   // Dynamic Evidence-Backed Recommendations
-  const recommendations = useMemo(() => {
-    return [
-      {
-        id: 'rec-sweetspot',
-        category: 'Sleep Window Forecast',
-        timing:
-          minsUntilSweetSpot === 0
-            ? 'SweetSpot Active Now'
-            : `In ${minsUntilSweetSpot} mins`,
-        title:
-          minsUntilSweetSpot === 0
-            ? 'Initiate Wind-Down Now to Prevent Cortisol Second-Wind'
-            : `Target Next Sleep Onset Within ${minsUntilSweetSpot} Minutes`,
-        description: `For an ${babyAgeWeeks}-week infant, the optimal wake window is ${targetWakeWindowMins}m (currently awake ${minsSinceSleep}m). Settling 10 minutes before peak overtiredness reduces "Owh" sleep-regression crying by 38%.`,
-        actionLabel: 'Start 60s Wind-Down Timer',
-        onAction: () => {
-          onStartWindDownTimer?.();
-          setCompletedRecs((p) => ({ ...p, 'rec-sweetspot': true }));
-        },
+  const recommendations = [
+    {
+      id: 'rec-sweetspot',
+      category: 'Sleep Window Forecast',
+      timing:
+        minsUntilSweetSpot === 0
+          ? 'SweetSpot Active Now'
+          : `In ${minsUntilSweetSpot} mins`,
+      title:
+        minsUntilSweetSpot === 0
+          ? 'Initiate Wind-Down Now to Prevent Cortisol Second-Wind'
+          : `Target Next Sleep Onset Within ${minsUntilSweetSpot} Minutes`,
+      description: `For an ${babyAgeWeeks}-week infant, the optimal wake window is ${targetWakeWindowMins}m (currently awake ${minsSinceSleep}m). Settling 10 minutes before peak overtiredness reduces "Owh" sleep-regression crying by 38%.`,
+      actionLabel: 'Start 60s Wind-Down Timer',
+      onAction: () => {
+        onStartWindDownTimer?.();
+        setCompletedRecs((p) => ({ ...p, 'rec-sweetspot': true }));
       },
-      {
-        id: 'rec-circadian',
-        category: 'Night Stretch Consolidation',
-        timing: `Longest stretch ${stats.longestStretchAvg}h avg (${stats.stretchDelta} trend)`,
-        title: 'Anchor 11:00 PM Cluster/Dream Feed & 7:30 AM Daylight Cue',
-        description: `Your 7-day night sleep averages ${stats.nightAvg}h across ${stats.avgWakings} wakings. Offering a calm, low-light dream feed before midnight and 15 minutes of indirect morning daylight consolidates the primary night stretch.`,
-        actionLabel: 'Log +1.0h Night Stretch',
-        onAction: () => {
-          handleAddSleepToToday(1.0, 'night');
-          setCompletedRecs((p) => ({ ...p, 'rec-circadian': true }));
-        },
+    },
+    {
+      id: 'rec-circadian',
+      category: 'Night Stretch Consolidation',
+      timing: `Longest stretch ${stats.longestStretchAvg}h avg (${stats.stretchDelta} trend)`,
+      title: 'Anchor 11:00 PM Cluster/Dream Feed & 7:30 AM Daylight Cue',
+      description: `Your 7-day night sleep averages ${stats.nightAvg}h across ${stats.avgWakings} wakings. Offering a calm, low-light dream feed before midnight and 15 minutes of indirect morning daylight consolidates the primary night stretch.`,
+      actionLabel: 'Log +1.0h Night Stretch',
+      onAction: () => {
+        handleAddSleepToToday(1.0, 'night');
+        setCompletedRecs((p) => ({ ...p, 'rec-circadian': true }));
       },
-      {
-        id: 'rec-acoustic',
-        category: `Acoustic Protocol · ${analysis.primaryCategory}`,
-        timing: `${analysis.confidenceScore}% model confidence`,
-        title:
-          analysis.primaryCategory === 'Gas / Colic'
-            ? 'Upright 20-Minute Post-Feed Hold & Left-Side Digestion Positioning'
-            : analysis.primaryCategory === 'Hunger'
-              ? 'Early Rooting Cue Response & Mid-Feed Burp Interval'
-              : 'Continuous 50 dB Low-Pass Brown Noise & Swaddle Containment',
-        description: `${analysis.immediateSoothingAction} Last feeding was ${minsSinceFeed}m ago and last diaper check was ${minsSinceDiaper}m ago.`,
-        actionLabel: 'Log +0.8h Restorative Nap',
-        onAction: () => {
-          handleAddSleepToToday(0.8, 'nap');
-          setCompletedRecs((p) => ({ ...p, 'rec-acoustic': true }));
-        },
+    },
+    {
+      id: 'rec-acoustic',
+      category: `Acoustic Protocol · ${analysis.primaryCategory}`,
+      timing: `${analysis.confidenceScore}% model confidence`,
+      title:
+        analysis.primaryCategory === 'Gas / Colic'
+          ? 'Upright 20-Minute Post-Feed Hold & Left-Side Digestion Positioning'
+          : analysis.primaryCategory === 'Hunger'
+            ? 'Early Rooting Cue Response & Mid-Feed Burp Interval'
+            : 'Continuous 50 dB Low-Pass Brown Noise & Swaddle Containment',
+      description: `${analysis.immediateSoothingAction} Last feeding was ${minsSinceFeed}m ago and last diaper check was ${minsSinceDiaper}m ago.`,
+      actionLabel: 'Log +0.8h Restorative Nap',
+      onAction: () => {
+        handleAddSleepToToday(0.8, 'nap');
+        setCompletedRecs((p) => ({ ...p, 'rec-acoustic': true }));
       },
-      {
-        id: 'rec-environment',
-        category: 'Nursery Micro-Environment',
-        timing: '20–22°C · < 5 lux Amber',
-        title: 'Thermal & Acoustic Calibration for REM Transitions',
-        description:
-          'Infants cycle between active (REM) and quiet sleep every 45–50 minutes. Keeping ambient room temperature at 20.5°C (69°F) with continuous low-frequency pink/brown noise prevents partial-arousal startles.',
-        actionLabel: 'Mark Calibrated',
-        onAction: () => {
-          setCompletedRecs((p) => ({
-            ...p,
-            'rec-environment': !p['rec-environment'],
-          }));
-        },
+    },
+    {
+      id: 'rec-environment',
+      category: 'Nursery Micro-Environment',
+      timing: '20–22°C · < 5 lux Amber',
+      title: 'Thermal & Acoustic Calibration for REM Transitions',
+      description:
+        'Infants cycle between active (REM) and quiet sleep every 45–50 minutes. Keeping ambient room temperature at 20.5°C (69°F) with continuous low-frequency pink/brown noise prevents partial-arousal startles.',
+      actionLabel: 'Mark Calibrated',
+      onAction: () => {
+        setCompletedRecs((p) => ({
+          ...p,
+          'rec-environment': !p['rec-environment'],
+        }));
       },
-    ];
-  }, [
-    analysis,
-    babyAgeWeeks,
-    minsSinceDiaper,
-    minsSinceFeed,
-    minsSinceSleep,
-    minsUntilSweetSpot,
-    onStartWindDownTimer,
-    stats,
-    targetWakeWindowMins,
-  ]);
+    },
+  ];
 
   const maxChartHours = 18;
 
   return (
-    <section
-      id="sleep-trends"
-      className="flex flex-col gap-6"
-    >
+    <section id="sleep-trends" className="flex flex-col gap-6">
       {/* Section Header & Infant Age Calibration Controls */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
@@ -512,9 +506,7 @@ export function SleepTrendsAndRecs({
                       key={day.dateStr}
                       type="button"
                       initial={
-                        hasMounted
-                          ? { opacity: 0, y: 18, scale: 0.92 }
-                          : false
+                        hasMounted ? { opacity: 0, y: 18, scale: 0.92 } : false
                       }
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 16, scale: 0.88 }}
@@ -556,9 +548,7 @@ export function SleepTrendsAndRecs({
                             <motion.span
                               key="nap-bar"
                               initial={
-                                hasMounted
-                                  ? { height: 0, opacity: 0 }
-                                  : false
+                                hasMounted ? { height: 0, opacity: 0 } : false
                               }
                               animate={{
                                 height: `${napHeightPct}%`,
@@ -669,9 +659,9 @@ export function SleepTrendsAndRecs({
                     <span>
                       Total:{' '}
                       <strong className="text-[var(--text-primary)]">
-                        {(selectedDay.nightHours + selectedDay.napHours).toFixed(
-                          1
-                        )}
+                        {(
+                          selectedDay.nightHours + selectedDay.napHours
+                        ).toFixed(1)}
                         h
                       </strong>
                     </span>

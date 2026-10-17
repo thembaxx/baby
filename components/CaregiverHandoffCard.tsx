@@ -1,7 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Handshake as HeartHandshake, PencilSimple as Edit3, Check, Phone, Baby, Clock, Sparkle as Sparkles } from '@phosphor-icons/react';
+import React, { useState } from 'react';
+import {
+  Handshake as HeartHandshake,
+  PencilSimple as Edit3,
+  Check,
+  Phone,
+  Baby,
+  Clock,
+  Sparkle as Sparkles,
+} from '@phosphor-icons/react';
+
+import { useClientReady } from '@/hooks/use-client-ready';
+import { readStoredValue } from '@/lib/storage';
 
 export type CaregiverRole = 'parent' | 'grandparent' | 'babysitter';
 
@@ -16,7 +27,8 @@ interface CaregiverProfile {
 const DEFAULT_PROFILE: CaregiverProfile = {
   babyName: 'Maya',
   ageLabel: '8 weeks old',
-  bottleInstructions: '120 ml (4 oz) warm breastmilk or formula · Burp halfway through',
+  bottleInstructions:
+    '120 ml (4 oz) warm breastmilk or formula · Burp halfway through',
   favoriteSoothing: 'Hold upright on left shoulder + play Womb Brown Noise',
   emergencyContact: 'Mom & Dad · (555) 234-8910',
 };
@@ -32,25 +44,21 @@ export function CaregiverHandoffCard({
   minsSinceSleep,
   minsSinceDiaper,
 }: CaregiverHandoffCardProps) {
-  const [profile, setProfile] = useState<CaregiverProfile>(DEFAULT_PROFILE);
+  const clientReady = useClientReady();
+  const [storedProfile, setProfile] = useState<CaregiverProfile>(() =>
+    readStoredValue('kora_caregiver_profile_v1', DEFAULT_PROFILE)
+  );
+  const profile = clientReady ? storedProfile : DEFAULT_PROFILE;
   const [isEditing, setIsEditing] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('kora_caregiver_profile_v1');
-      if (saved) {
-        setProfile({ ...DEFAULT_PROFILE, ...JSON.parse(saved) });
-      }
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
     try {
-      localStorage.setItem('kora_caregiver_profile_v1', JSON.stringify(profile));
+      localStorage.setItem(
+        'kora_caregiver_profile_v1',
+        JSON.stringify(profile)
+      );
     } catch {
       // Ignore storage errors
     }

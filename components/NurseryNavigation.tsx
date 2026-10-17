@@ -85,7 +85,7 @@ export function NurseryNavigation({
                 />
               )}
               <Icon
-                size={29}
+                size={24}
                 weight={active ? 'fill' : 'regular'}
                 className="relative z-10"
                 aria-hidden="true"

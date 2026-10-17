@@ -56,6 +56,8 @@ import {
   type HapticEventPayload,
 } from '@/lib/haptics';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
+import { useClientReady } from '@/hooks/use-client-ready';
+import { readStoredValue } from '@/lib/storage';
 
 interface CareLogItem {
   id: string;
@@ -149,7 +151,11 @@ export default function HomePage() {
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>(
     {}
   );
-  const [careLogs, setCareLogs] = useState<CareLogItem[]>(INITIAL_LOGS);
+  const hasMounted = useClientReady();
+  const [storedCareLogs, setCareLogs] = useState<CareLogItem[]>(() =>
+    readStoredValue('nocturne_care_logs_v1', INITIAL_LOGS)
+  );
+  const careLogs = hasMounted ? storedCareLogs : INITIAL_LOGS;
   const [logFilter, setLogFilter] = useState<
     'all' | 'cry' | 'feed' | 'diaper' | 'medication'
   >('all');
@@ -159,11 +165,6 @@ export default function HomePage() {
   const [largeText, setLargeText] = useState(false);
   const [showAdvancedTech, setShowAdvancedTech] = useState(false);
   const [show3DVisualizer, setShow3DVisualizer] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   // Theme settings
   const [themeSetting, setThemeSetting] = useState<ThemeSetting>('nocturne');
@@ -235,7 +236,7 @@ export default function HomePage() {
     models: string[];
     message?: string;
   }>({
-    checking: false,
+    checking: true,
     online: false,
     models: [],
   });
@@ -375,21 +376,6 @@ export default function HomePage() {
     return () => media.removeEventListener('change', syncSystemTheme);
   }, [themeSetting]);
 
-  // Load persisted logs from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('nocturne_care_logs_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCareLogs(parsed);
-        }
-      }
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
-
   const saveLogs = useCallback((nextLogs: CareLogItem[]) => {
     setCareLogs(nextLogs);
     try {
@@ -399,32 +385,42 @@ export default function HomePage() {
     }
   }, []);
 
-  const checkOllamaConnection = useCallback(async () => {
-    setOllamaStatus((prev) => ({ ...prev, checking: true }));
+  const queryOllamaConnection = useCallback(async () => {
     try {
       const res = await fetch(
         `/api/classify-cry?baseUrl=${encodeURIComponent(ollamaBaseUrl)}`
       );
       const data = await res.json();
-      setOllamaStatus({
+      return {
         checking: false,
         online: Boolean(data.online),
         models: data.models || [],
         message: data.message,
-      });
+      };
     } catch {
-      setOllamaStatus({
+      return {
         checking: false,
         online: false,
         models: [],
         message: 'Automatic cloud & on-device cry analyzer is active.',
-      });
+      };
     }
   }, [ollamaBaseUrl]);
 
+  const checkOllamaConnection = () => {
+    setOllamaStatus((prev) => ({ ...prev, checking: true }));
+    void queryOllamaConnection().then(setOllamaStatus);
+  };
+
   useEffect(() => {
-    checkOllamaConnection();
-  }, [checkOllamaConnection]);
+    let active = true;
+    void queryOllamaConnection().then((status) => {
+      if (active) setOllamaStatus(status);
+    });
+    return () => {
+      active = false;
+    };
+  }, [queryOllamaConnection]);
 
   const showHapticPulseBanner = useCallback((payload: HapticEventPayload) => {
     setActiveHapticToast(payload);
@@ -441,32 +437,33 @@ export default function HomePage() {
   // 1-Minute Soothing Timer with Haptic Vibration on Expiration
   useEffect(() => {
     if (soothingTimerSecs === null) return;
-    if (soothingTimerSecs <= 0) {
-      setSoothingTimerSecs(null);
-      triggerNurseryHaptic('timer-expired', {
-        intensity: hapticIntensity,
-        customLabel: '1-Minute Calming Timer Finished — Check if Baby Settled',
-        onVisualPulse: showHapticPulseBanner,
-      });
-      const nowTime = new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      saveLogs([
-        {
-          id: `timer-${Date.now()}`,
-          type: 'sleep',
-          title: '1-Min Soothing Timer Completed',
-          detail: 'Haptic vibration alert triggered for caregiver check',
-          timestamp: nowTime,
-          minutesAgo: 0,
-        },
-        ...careLogs,
-      ]);
-      return;
-    }
     const timer = setTimeout(() => {
-      setSoothingTimerSecs((prev) => (prev !== null ? prev - 1 : null));
+      if (soothingTimerSecs <= 1) {
+        setSoothingTimerSecs(null);
+        triggerNurseryHaptic('timer-expired', {
+          intensity: hapticIntensity,
+          customLabel:
+            '1-Minute Calming Timer Finished — Check if Baby Settled',
+          onVisualPulse: showHapticPulseBanner,
+        });
+        const nowTime = new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        saveLogs([
+          {
+            id: `timer-${Date.now()}`,
+            type: 'sleep',
+            title: '1-Min Soothing Timer Completed',
+            detail: 'Haptic vibration alert triggered for caregiver check',
+            timestamp: nowTime,
+            minutesAgo: 0,
+          },
+          ...careLogs,
+        ]);
+      } else {
+        setSoothingTimerSecs(soothingTimerSecs - 1);
+      }
     }, 1000);
     return () => clearTimeout(timer);
   }, [
@@ -480,32 +477,32 @@ export default function HomePage() {
   // Care Log Reminder Timer (e.g., 10s Demo / 15m Burp / 30m Nap Check) with Haptic Alert
   useEffect(() => {
     if (careReminderSecs === null) return;
-    if (careReminderSecs <= 0) {
-      setCareReminderSecs(null);
-      triggerNurseryHaptic('timer-expired', {
-        intensity: hapticIntensity,
-        customLabel: `Care Log Timer Expired: ${careReminderLabel}`,
-        onVisualPulse: showHapticPulseBanner,
-      });
-      const nowTime = new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      saveLogs([
-        {
-          id: `reminder-${Date.now()}`,
-          type: 'feed',
-          title: `Timer Alert: ${careReminderLabel}`,
-          detail: 'Caregiver notified via tactile haptic vibration pattern',
-          timestamp: nowTime,
-          minutesAgo: 0,
-        },
-        ...careLogs,
-      ]);
-      return;
-    }
     const timer = setTimeout(() => {
-      setCareReminderSecs((prev) => (prev !== null ? prev - 1 : null));
+      if (careReminderSecs <= 1) {
+        setCareReminderSecs(null);
+        triggerNurseryHaptic('timer-expired', {
+          intensity: hapticIntensity,
+          customLabel: `Care Log Timer Expired: ${careReminderLabel}`,
+          onVisualPulse: showHapticPulseBanner,
+        });
+        const nowTime = new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        saveLogs([
+          {
+            id: `reminder-${Date.now()}`,
+            type: 'feed',
+            title: `Timer Alert: ${careReminderLabel}`,
+            detail: 'Caregiver notified via tactile haptic vibration pattern',
+            timestamp: nowTime,
+            minutesAgo: 0,
+          },
+          ...careLogs,
+        ]);
+      } else {
+        setCareReminderSecs(careReminderSecs - 1);
+      }
     }, 1000);
     return () => clearTimeout(timer);
   }, [

@@ -1,7 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { SpeakerHigh as Volume2, Play, Square, Clock } from '@phosphor-icons/react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  SpeakerHigh as Volume2,
+  Play,
+  Square,
+  Clock,
+} from '@phosphor-icons/react';
 
 type SoundMode = 'brown' | 'pink' | 'heartbeat' | 'shush';
 
@@ -37,6 +42,28 @@ const SOUND_PROFILES: {
   },
 ];
 
+function createNoiseBuffer(ctx: AudioContext, mode: SoundMode) {
+  const bufferSize = ctx.sampleRate * 3;
+  const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+
+  let lastOut = 0.0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    if (mode === 'brown') {
+      output[i] = (lastOut + 0.02 * white) / 1.02;
+      lastOut = output[i];
+      output[i] *= 3.2;
+    } else {
+      output[i] = (lastOut + 0.08 * white) / 1.08;
+      lastOut = output[i];
+      output[i] *= 1.8;
+    }
+  }
+
+  return noiseBuffer;
+}
+
 export function SoundscapePlayer({
   onTimerExpired,
 }: {
@@ -51,16 +78,11 @@ export function SoundscapePlayer({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const modIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  const stopAudio = () => {
+  const stopAudio = useCallback(() => {
     if (modIntervalRef.current) {
       clearInterval(modIntervalRef.current);
       modIntervalRef.current = null;
-    }
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
     }
     if (audioCtxRef.current) {
       audioCtxRef.current.close().catch(() => {});
@@ -69,16 +91,13 @@ export function SoundscapePlayer({
     gainNodeRef.current = null;
     setIsPlaying(false);
     setRemainingSeconds(null);
-    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'paused';
-    }
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
       stopAudio();
     };
-  }, []);
+  }, [stopAudio]);
 
   useEffect(() => {
     if (gainNodeRef.current && audioCtxRef.current) {
@@ -101,26 +120,8 @@ export function SoundscapePlayer({
     gainNodeRef.current = masterGain;
 
     if (mode === 'brown' || mode === 'pink' || mode === 'shush') {
-      const bufferSize = ctx.sampleRate * 3;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-
-      let lastOut = 0.0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        if (mode === 'brown') {
-          output[i] = (lastOut + 0.02 * white) / 1.02;
-          lastOut = output[i];
-          output[i] *= 3.2;
-        } else {
-          output[i] = (lastOut + 0.08 * white) / 1.08;
-          lastOut = output[i];
-          output[i] *= 1.8;
-        }
-      }
-
       const whiteNoise = ctx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.buffer = createNoiseBuffer(ctx, mode);
       whiteNoise.loop = true;
 
       const filter = ctx.createBiquadFilter();
@@ -185,37 +186,51 @@ export function SoundscapePlayer({
 
     setIsPlaying(true);
 
-    // Register Native Lock-Screen Media Session Metadata
-    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
-      const profile = SOUND_PROFILES.find((p) => p.id === mode);
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: profile?.title || 'Kora Nursery Soundscape',
-        artist: 'Kora Acoustic Studio',
-        album: '3:00 AM Soothing Frequencies',
-        artwork: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-        ],
-      });
-      navigator.mediaSession.playbackState = 'playing';
-      navigator.mediaSession.setActionHandler('pause', () => stopAudio());
-      navigator.mediaSession.setActionHandler('stop', () => stopAudio());
-    }
-
-    if (timerMinutes) {
-      setRemainingSeconds(timerMinutes * 60);
-      countdownRef.current = setInterval(() => {
-        setRemainingSeconds((prev) => {
-          if (prev === null || prev <= 1) {
-            stopAudio();
-            onTimerExpired?.();
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    setRemainingSeconds(timerMinutes === null ? null : timerMinutes * 60);
   };
+
+  const timerExpiredRef = useRef(onTimerExpired);
+  useEffect(() => {
+    timerExpiredRef.current = onTimerExpired;
+  }, [onTimerExpired]);
+
+  useEffect(() => {
+    if (!isPlaying || remainingSeconds === null) return;
+    const timer = setTimeout(() => {
+      if (remainingSeconds <= 1) {
+        stopAudio();
+        timerExpiredRef.current?.();
+      } else {
+        setRemainingSeconds(remainingSeconds - 1);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [isPlaying, remainingSeconds, stopAudio]);
+
+  // Keep browser media controls synchronized with playback, outside React rendering.
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    const session = navigator.mediaSession;
+    session.playbackState = isPlaying ? 'playing' : 'paused';
+    if (!isPlaying) return;
+    const profile = SOUND_PROFILES.find((item) => item.id === activeMode);
+    session.metadata = new MediaMetadata({
+      title: profile?.title || 'Kora Nursery Soundscape',
+      artist: 'Kora Acoustic Studio',
+      album: '3:00 AM Soothing Frequencies',
+      artwork: [
+        { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+    session.setActionHandler('pause', stopAudio);
+    session.setActionHandler('stop', stopAudio);
+    return () => {
+      session.setActionHandler('pause', null);
+      session.setActionHandler('stop', null);
+      session.playbackState = 'paused';
+    };
+  }, [activeMode, isPlaying, stopAudio]);
 
   const handleSelectMode = (mode: SoundMode) => {
     setActiveMode(mode);
