@@ -35,6 +35,7 @@ import {
   CaregiverHandoffCard,
   type CaregiverRole,
 } from '@/components/CaregiverHandoffCard';
+import { MedicationLogCard } from '@/components/MedicationLogCard';
 import {
   triggerNurseryHaptic,
   type HapticIntensity,
@@ -46,7 +47,7 @@ type ThemeSetting = 'nocturne' | 'redlight' | 'lunar' | 'daylight' | 'system';
 
 interface CareLogItem {
   id: string;
-  type: 'cry' | 'feed' | 'diaper' | 'sleep';
+  type: 'cry' | 'feed' | 'diaper' | 'sleep' | 'medication';
   title: string;
   detail: string;
   timestamp: string;
@@ -90,6 +91,14 @@ const INITIAL_LOGS: CareLogItem[] = [
     timestamp: '09:30 PM',
     minutesAgo: 326,
   },
+  {
+    id: 'log-5',
+    type: 'medication',
+    title: 'Simethicone Gas Drops (0.3 mL)',
+    detail: 'Every 4h schedule · Logged by Parent · Next reminder active',
+    timestamp: '11:30 PM',
+    minutesAgo: 225,
+  },
 ];
 
 const INITIAL_ANALYSIS: CryAnalysisResult = {
@@ -130,7 +139,7 @@ export default function HomePage() {
   );
   const [careLogs, setCareLogs] = useState<CareLogItem[]>(INITIAL_LOGS);
   const [logFilter, setLogFilter] = useState<
-    'all' | 'cry' | 'feed' | 'diaper'
+    'all' | 'cry' | 'feed' | 'diaper' | 'medication'
   >('all');
 
   // Caregiver Role & Large Easy-Read Text Accessibility State
@@ -661,6 +670,7 @@ export default function HomePage() {
     let totalSleepMinutes = 0;
     let cryCount = 0;
     let settledCryCount = 0;
+    let medicationCount = 0;
 
     for (const item of careLogs) {
       const combinedText = `${item.title} ${item.detail}`;
@@ -696,6 +706,8 @@ export default function HomePage() {
       } else if (item.type === 'cry') {
         cryCount += 1;
         if (item.resolved) settledCryCount += 1;
+      } else if (item.type === 'medication') {
+        medicationCount += 1;
       }
     }
 
@@ -712,8 +724,14 @@ export default function HomePage() {
       feedCount === 1 ? 'feeding' : 'feedings'
     } (~${totalFeedMl} ml), ${diaperCount} ${
       diaperCount === 1 ? 'diaper change' : 'diaper changes'
-    }, and ${formattedSleepDuration} total sleep across ${sleepCount} ${
+    }, ${formattedSleepDuration} total sleep across ${sleepCount} ${
       sleepCount === 1 ? 'stretch' : 'stretches'
+    }${
+      medicationCount > 0
+        ? `, and ${medicationCount} medication ${
+            medicationCount === 1 ? 'dose' : 'doses'
+          }`
+        : ''
     }${
       cryCount > 0 ? ` (${settledCryCount}/${cryCount} cries settled)` : ''
     }.`;
@@ -726,6 +744,7 @@ export default function HomePage() {
       formattedSleepDuration,
       cryCount,
       settledCryCount,
+      medicationCount,
       reportText,
     };
   }, [careLogs]);
@@ -1488,13 +1507,14 @@ export default function HomePage() {
               </div>
 
               {/* Interactive Segmented Filter Controls */}
-              <div className="flex items-center gap-1 p-1 bg-[var(--bg-canvas)] rounded-xl border border-[var(--border-subtle)]">
+              <div className="flex items-center gap-1 p-1 bg-[var(--bg-canvas)] rounded-xl border border-[var(--border-subtle)] overflow-x-auto">
                 {(
                   [
                     { id: 'all', label: 'All Events' },
                     { id: 'cry', label: 'Cries' },
                     { id: 'feed', label: 'Feedings' },
                     { id: 'diaper', label: 'Diapers' },
+                    { id: 'medication', label: 'Meds' },
                   ] as const
                 ).map((tab) => {
                   const active = logFilter === tab.id;
@@ -1585,7 +1605,9 @@ export default function HomePage() {
                               triggerNurseryHaptic(
                                 item.type === 'cry'
                                   ? 'cry-detected'
-                                  : 'care-logged',
+                                  : item.type === 'medication'
+                                    ? 'medication-due'
+                                    : 'care-logged',
                                 {
                                   intensity:
                                     hapticIntensity === 'off'
@@ -1727,6 +1749,33 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* Specialized Medication & Supplement Log with Recurring Haptic Reminders */}
+        <MedicationLogCard
+          caregiverRole={caregiverRole}
+          hapticIntensity={hapticIntensity}
+          onVisualPulse={showHapticPulseBanner}
+          onLogMedicationDose={({
+            medicationName,
+            dosage,
+            frequencyHours,
+            administeredBy,
+            instructions,
+            timestamp,
+          }) => {
+            saveLogs([
+              {
+                id: `med-log-${Date.now()}`,
+                type: 'medication',
+                title: `${medicationName} (${dosage})`,
+                detail: `Every ${frequencyHours}h schedule · Given by ${administeredBy} · ${instructions}`,
+                timestamp,
+                minutesAgo: 0,
+              },
+              ...careLogs,
+            ]);
+          }}
+        />
 
         {/* Sleep Trend Analytics & Smart Pediatric Recommendations */}
         <SleepTrendsAndRecs

@@ -5,7 +5,8 @@ export type HapticPatternType =
   | 'timer-expired'
   | 'care-logged'
   | 'step-checked'
-  | 'overdue-alert';
+  | 'overdue-alert'
+  | 'medication-due';
 
 export type HapticIntensity = 'off' | 'gentle' | 'standard' | 'strong';
 
@@ -22,6 +23,7 @@ const BASE_PATTERNS: Record<HapticPatternType, number[]> = {
   'care-logged': [35, 45, 70],
   'step-checked': [22],
   'overdue-alert': [160, 80, 160, 80, 160],
+  'medication-due': [95, 55, 190, 120, 95, 55, 240],
 };
 
 const INTENSITY_MULTIPLIER: Record<Exclude<HapticIntensity, 'off'>, number> = {
@@ -137,6 +139,7 @@ export function triggerNurseryHaptic(
     'care-logged': 'Care Log Updated — Tactile Confirmation',
     'step-checked': 'Soothing Step Checked',
     'overdue-alert': 'Feeding / Nap Window Due — Haptic Reminder',
+    'medication-due': 'Medication Dose Due — Haptic Reminder Pulsed',
   };
 
   const payload: HapticEventPayload = {
