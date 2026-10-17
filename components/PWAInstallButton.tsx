@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Smartphone, WifiOff, Check } from 'lucide-react';
+import { DownloadSimple as Download, DeviceMobile as Smartphone, WifiSlash as WifiOff, Check } from '@phosphor-icons/react';
 import { usePWAInstall, useOnlineStatus } from '@/hooks/usePWAInstall';
 
 export function PWAInstallButton() {

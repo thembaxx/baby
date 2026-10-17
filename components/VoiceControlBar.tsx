@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Volume2, Mic, Loader2, Square } from 'lucide-react';
+import { SpeakerHigh as Volume2, Microphone as Mic, SpinnerGap as Loader2, Square } from '@phosphor-icons/react';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 import type { CryPresetKey } from '@/components/AcousticOrb3D';
 
@@ -169,7 +169,7 @@ export function VoiceControlBar({
     <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="flex flex-col gap-0.5 min-w-0">
         <div className="text-xs font-semibold text-[var(--text-primary)]">
-          Hands-Free Nursery Voice Assistant & Neural TTS
+          A little hands-free help
         </div>
         <div className="text-xs text-[var(--text-secondary)] truncate">
           {voiceTranscript ||
@@ -177,7 +177,7 @@ export function VoiceControlBar({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={toggleHandsFreeVoiceCommand}
@@ -202,7 +202,7 @@ export function VoiceControlBar({
         >
           {speaking ? (
             <>
-              <Square className="w-3.5 h-3.5 fill-current" />
+              <Square weight="fill" className="w-3.5 h-3.5" />
               <span>Stop Voice</span>
             </>
           ) : (

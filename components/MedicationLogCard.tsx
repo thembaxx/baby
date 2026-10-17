@@ -1,19 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Pill,
-  Clock,
-  Bell,
-  BellRing,
-  CheckCircle2,
-  Plus,
-  Trash2,
-  Vibrate,
-  AlertTriangle,
-  RotateCcw,
-  ShieldCheck,
-} from 'lucide-react';
+import { Pill, Clock, Bell, BellRinging as BellRing, CheckCircle as CheckCircle2, Plus, Trash as Trash2, Vibrate, Warning as AlertTriangle, ArrowCounterClockwise as RotateCcw, ShieldCheck } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   triggerNurseryHaptic,

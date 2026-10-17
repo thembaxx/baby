@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  Moon,
-  Sun,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  Plus,
-  Sparkles,
-  Thermometer,
-  Calendar,
-} from 'lucide-react';
+import { Moon, Sun, TrendUp as TrendingUp, Clock, CheckCircle as CheckCircle2, Plus, Sparkle as Sparkles, ThermometerSimple as Thermometer, CalendarBlank as Calendar } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
@@ -390,7 +380,7 @@ export function SleepTrendsAndRecs({
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                Total Sleep (Night + Naps)
+                Total sleep
               </button>
               <button
                 type="button"
@@ -401,7 +391,7 @@ export function SleepTrendsAndRecs({
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                Longest Uninterrupted Stretch
+                Longest stretch
               </button>
             </div>
 
@@ -634,7 +624,7 @@ export function SleepTrendsAndRecs({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleAddSleepToToday(0.7, 'nap')}

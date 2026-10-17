@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { ChevronDown, ChevronUp, Download, Box, Layers, Camera } from 'lucide-react';
+import { CaretDown as ChevronDown, CaretUp as ChevronUp, DownloadSimple as Download, Cube as Box, Stack as Layers, Camera } from '@phosphor-icons/react';
 
 export type FinishPreset = 'gold' | 'lunar' | 'crystal' | 'clay';
 export type CameraPreset = 'studio' | 'zenith' | 'macro';
@@ -16,6 +16,7 @@ interface AcousticOrb3DProps {
   isRecording: boolean;
   analyzing: boolean;
   audioEnergy?: number;
+  isVisible?: boolean;
   themeMode: 'nocturne' | 'lunar' | 'daylight' | 'redlight';
   onSelectCryNode?: (preset: CryPresetKey) => void;
 }
@@ -98,6 +99,7 @@ export function AcousticOrb3D({
   analyzing,
   audioEnergy = 0.2,
   themeMode,
+  isVisible = true,
   onSelectCryNode,
 }: AcousticOrb3DProps) {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
@@ -111,6 +113,7 @@ export function AcousticOrb3D({
 
   // Mutable refs read inside animation loop without recreating WebGL context
   const stateRef = useRef({
+    isVisible: true,
     exploded: 0,
     finish: 'gold' as FinishPreset,
     camPreset: 'studio' as CameraPreset,
@@ -123,6 +126,7 @@ export function AcousticOrb3D({
 
   useEffect(() => {
     stateRef.current = {
+      isVisible,
       exploded,
       finish,
       camPreset,
@@ -133,6 +137,7 @@ export function AcousticOrb3D({
       themeMode,
     };
   }, [
+    isVisible,
     exploded,
     finish,
     camPreset,
@@ -468,6 +473,9 @@ export function AcousticOrb3D({
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(mount);
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     // Animation Loop with Exponential Damping
     const clock = new THREE.Clock();
@@ -476,9 +484,11 @@ export function AcousticOrb3D({
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      const delta = Math.min(clock.getDelta(), 0.1);
-      const elapsed = clock.getElapsedTime();
       const st = stateRef.current;
+      if (!st.isVisible || document.hidden) { clock.getDelta(); return; }
+      const frameDelta = Math.min(clock.getDelta(), 0.1);
+      const delta = motionPreference.matches ? 0 : frameDelta;
+      const elapsed = motionPreference.matches ? 0 : clock.getElapsedTime();
 
       // Sync theme background color smoothly
       const targetBgHex =
@@ -606,6 +616,7 @@ export function AcousticOrb3D({
 
     return () => {
       cancelAnimationFrame(animId);
+      resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);

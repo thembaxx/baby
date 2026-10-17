@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kora-nursery-pwa-v2';
+const CACHE_NAME = 'kora-nursery-pwa-v3';
 const PRECACHE_URLS = [
   '/',
   '/icon.svg',

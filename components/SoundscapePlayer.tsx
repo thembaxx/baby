@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Volume2, Play, Square, Clock } from 'lucide-react';
+import { SpeakerHigh as Volume2, Play, Square, Clock } from '@phosphor-icons/react';
 
 type SoundMode = 'brown' | 'pink' | 'heartbeat' | 'shush';
 
@@ -232,13 +232,13 @@ export function SoundscapePlayer({
 
   return (
     <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="text-base font-bold text-[var(--text-primary)]">
-            Nocturnal Soothing Soundscape
+            Calming sounds
           </h3>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Zero-latency Web Audio generator with native lock-screen controls
+            Familiar sounds for a softer moment.
           </p>
         </div>
 
@@ -253,12 +253,12 @@ export function SoundscapePlayer({
         >
           {isPlaying ? (
             <>
-              <Square className="w-3.5 h-3.5 fill-current" />
+              <Square weight="fill" className="w-3.5 h-3.5" />
               <span>Stop Soundscape</span>
             </>
           ) : (
             <>
-              <Play className="w-3.5 h-3.5 fill-current" />
+              <Play weight="fill" className="w-3.5 h-3.5" />
               <span>Start Soothing Audio</span>
             </>
           )}
