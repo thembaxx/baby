@@ -17,7 +17,11 @@ export type CryPresetId = 'hunger' | 'gas' | 'overtired' | 'discomfort';
 
 interface CryRecorderProps {
   onClassificationResult: (res: CryAnalysisResult, audioUrl?: string) => void;
-  onRecordingStateChange?: (recording: boolean, analyzing: boolean, energy: number) => void;
+  onRecordingStateChange?: (
+    recording: boolean,
+    analyzing: boolean,
+    energy: number
+  ) => void;
   externalPresetTrigger?: { preset: CryPresetId; ts: number } | null;
   careContext?: {
     minutesSinceLastFeed?: number;
@@ -177,7 +181,7 @@ export function CryRecorder({
             onClassificationResult(result, audioUrl);
           } catch (innerErr) {
             console.error('Cry analysis request failed:', innerErr);
-            setErrorMessage('Failed to classify audio sample.');
+            setErrorMessage('Could not analyze the sound right now. Please try again.');
           } finally {
             setAnalyzing(false);
             onRecordingStateChange?.(false, false, 0.15);
@@ -327,7 +331,7 @@ export function CryRecorder({
     } catch (err) {
       console.error('Microphone access error:', err);
       setErrorMessage(
-        'Microphone access was blocked or unavailable. Tap any Reference Cry Acoustic Sample below (or click an orbiting 3D node above) to test the local inference pipeline.'
+        'Microphone is turned off or unavailable. You can tap any of the 4 Sample Baby Cries below to see how Kora translates a cry into soothing steps.'
       );
     }
   };
@@ -372,31 +376,30 @@ export function CryRecorder({
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col gap-5 p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)]"
     >
-      {/* Top Status & Controls Row */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="text-xs text-[var(--text-secondary)]">
-          <span>5.0s Acoustic Capture</span>
-          <span aria-hidden="true" className="mx-2 opacity-50">
-            ·
-          </span>
-          <span className="font-mono tabular-nums text-[var(--text-primary)]">
-            {ollamaConfig?.model || 'qwen2-audio'}
-          </span>
+      {/* Friendly Header & Controls Row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-[var(--text-primary)]">
+            Step 1: Listen to Baby&apos;s Cry (5 Seconds)
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Private, on-device sound check that tells you what baby likely needs
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setMutePreview((prev) => !prev)}
-            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
-            title="Toggle reference audio preview sound"
+            className="min-h-[42px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            title="Mute or unmute sample cry sound"
           >
             {mutePreview ? (
-              <VolumeX className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+              <VolumeX className="w-4 h-4 text-[var(--text-secondary)]" />
             ) : (
-              <Volume2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+              <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
             )}
-            <span>{mutePreview ? 'Muted (3 AM Mode)' : 'Audio Preview On'}</span>
+            <span>{mutePreview ? 'Quiet Mode (Muted)' : 'Sample Sound On'}</span>
           </button>
 
           <input
@@ -410,23 +413,23 @@ export function CryRecorder({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isRecording || analyzing}
-            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
+            className="min-h-[42px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
           >
-            <Upload className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-            <span>Upload Clip</span>
+            <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
+            <span>Upload Recording</span>
           </button>
         </div>
       </div>
 
-      {/* Main 5-Second Mic Trigger + Waveform Visualizer */}
-      <div className="flex flex-col items-center justify-center py-3 gap-4">
+      {/* Main Big Easy-Tap Microphone Button */}
+      <div className="flex flex-col items-center justify-center py-4 gap-4">
         <motion.button
           type="button"
-          whileTap={{ scale: 0.94 }}
+          whileTap={{ scale: 0.95 }}
           onClick={isRecording ? stopRecordingEarly : startRecording}
           disabled={analyzing}
-          aria-label={isRecording ? 'Stop recording' : 'Tap to Decode Cry'}
-          className={`relative flex items-center justify-center w-24 h-24 rounded-full transition-colors shadow-xl ${
+          aria-label={isRecording ? 'Stop listening' : 'Tap to Listen to Baby'}
+          className={`relative flex items-center justify-center w-28 h-28 rounded-full transition-colors shadow-xl ${
             isRecording
               ? 'bg-rose-500 text-white ring-8 ring-rose-500/25'
               : analyzing
@@ -435,30 +438,30 @@ export function CryRecorder({
           }`}
         >
           {analyzing ? (
-            <Loader2 className="w-9 h-9 animate-spin" />
+            <Loader2 className="w-10 h-10 animate-spin" />
           ) : isRecording ? (
-            <Square className="w-8 h-8 fill-current" />
+            <Square className="w-9 h-9 fill-current" />
           ) : (
-            <Mic className="w-9 h-9" />
+            <Mic className="w-10 h-10" />
           )}
         </motion.button>
 
         <div className="flex flex-col items-center gap-1 text-center">
-          <span className="text-sm font-semibold text-[var(--text-primary)]">
+          <span className="text-base font-bold text-[var(--text-primary)]">
             {isRecording
-              ? `Listening to 5s cry sample... (${secondsLeft.toFixed(1)}s)`
+              ? `Listening to baby... (${secondsLeft.toFixed(1)}s left)`
               : analyzing
-                ? 'Analyzing local audio...'
-                : 'Tap to Decode Cry'}
+                ? 'Checking what baby needs...'
+                : 'Tap to Decode Baby’s Cry'}
           </span>
-          <span className="text-xs text-[var(--text-secondary)]">
+          <span className="text-xs text-[var(--text-secondary)] max-w-md">
             {isRecording
-              ? 'Hold phone 30–50 cm from infant. Tap early to analyze immediately.'
-              : 'Captures a 5-second PCM/WebM clip and streams base64 to /api/classify-cry'}
+              ? 'Hold phone gently near baby. It will stop automatically after 5 seconds.'
+              : 'Just tap the big button once and hold your phone near the crib or bassinet.'}
           </span>
         </div>
 
-        {/* 24-Bar Acoustic Spectrum Visualizer */}
+        {/* 24-Bar Acoustic Visualizer */}
         <div
           className="w-full max-w-md h-12 flex items-end justify-center gap-1 px-4"
           aria-hidden="true"
@@ -484,39 +487,54 @@ export function CryRecorder({
           <button
             type="button"
             onClick={toggleReplaySample}
-            className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
+            className="min-h-[42px] px-4 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
           >
-            <Play className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+            <Play className="w-4 h-4 text-[var(--accent-primary)]" />
             <span>
               {isPlayingSample
-                ? 'Stop Sample Playback'
-                : 'Replay Captured 5s Audio Sample'}
+                ? 'Stop Playing'
+                : 'Listen to Recorded 5-Second Clip'}
             </span>
           </button>
         )}
       </div>
 
       {errorMessage && (
-        <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 leading-relaxed">
+        <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 leading-relaxed">
           {errorMessage}
         </div>
       )}
 
-      {/* Reference Cry Acoustic Synthesizer Bar for Instant Testing */}
+      {/* Friendly Sample Baby Cries Bar for Practice / Testing */}
       <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-2.5">
         <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
           <span>
-            Simulate 5s Reference Infant Cry (Synthesizes WAV & Calls API)
+            No baby crying right now? Tap a sample cry below to see how it works:
           </span>
-          <span className="font-mono tabular-nums">16 kHz PCM</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {(
             [
-              { id: 'hunger', label: 'Hunger ("Neh")', freq: '420 Hz' },
-              { id: 'gas', label: 'Gas / Colic ("Eairh")', freq: '610 Hz' },
-              { id: 'overtired', label: 'Overtired ("Owh")', freq: '340 Hz' },
-              { id: 'discomfort', label: 'Discomfort ("Heh")', freq: '480 Hz' },
+              {
+                id: 'hunger',
+                label: 'Hungry Cry',
+                sub: 'Short rhythmic "Neh"',
+              },
+              {
+                id: 'gas',
+                label: 'Tummy Gas Cry',
+                sub: 'Tight tummy sound',
+              },
+              {
+                id: 'overtired',
+                label: 'Sleepy / Tired Cry',
+                sub: 'Yawning "Owh" sound',
+              },
+              {
+                id: 'discomfort',
+                label: 'Wet Diaper / Fussy',
+                sub: 'Breathy "Heh" sound',
+              },
             ] as const
           ).map((item) => (
             <button
@@ -524,17 +542,17 @@ export function CryRecorder({
               type="button"
               disabled={isRecording || analyzing}
               onClick={() => handleRunReferenceCry(item.id)}
-              className={`min-h-[44px] px-3 py-2 rounded-xl border text-left transition-colors flex flex-col justify-between ${
+              className={`min-h-[52px] px-3.5 py-2.5 rounded-xl border text-left transition-colors flex flex-col justify-between ${
                 activePreset === item.id
-                  ? 'bg-amber-400/15 border-amber-400/40 text-[var(--text-primary)]'
+                  ? 'bg-amber-400/15 border-amber-400/50 text-[var(--text-primary)]'
                   : 'bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
               } disabled:opacity-50`}
             >
-              <span className="text-xs font-medium whitespace-nowrap truncate">
+              <span className="text-xs font-bold whitespace-nowrap truncate">
                 {item.label}
               </span>
-              <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
-                {item.freq}
+              <span className="text-[11px] text-[var(--text-secondary)] truncate">
+                {item.sub}
               </span>
             </button>
           ))}

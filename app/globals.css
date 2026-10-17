@@ -38,6 +38,10 @@
     --border-subtle: rgba(28, 25, 23, 0.1);
   }
 
+  html[data-large-text='true'] {
+    font-size: 112.5%;
+  }
+
   html,
   body {
     background-color: var(--bg-canvas);

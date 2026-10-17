@@ -15,7 +15,9 @@ import {
   Sparkles,
   Share2,
   Smartphone,
-  FileText,
+  Volume2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CryRecorder, type CryPresetId } from '@/components/CryRecorder';
@@ -26,6 +28,10 @@ import { VoiceControlBar } from '@/components/VoiceControlBar';
 import { PWAInstallButton, OfflineIndicator } from '@/components/PWAInstallButton';
 import { KoraLogo, type LogoVariant } from '@/components/KoraLogo';
 import { SleepTrendsAndRecs } from '@/components/SleepTrendsAndRecs';
+import {
+  CaregiverHandoffCard,
+  type CaregiverRole,
+} from '@/components/CaregiverHandoffCard';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
 type ThemeSetting = 'nocturne' | 'lunar' | 'daylight' | 'system';
@@ -45,8 +51,8 @@ const INITIAL_LOGS: CareLogItem[] = [
   {
     id: 'log-1',
     type: 'cry',
-    title: 'Gas / Colic Decoded',
-    detail: 'Bicycle legs & tummy massage applied · Settled in 4m',
+    title: 'Tummy Gas / Colic Translated',
+    detail: 'Bicycle legs & tummy massage applied · Settled in 4 mins',
     timestamp: '02:14 AM',
     minutesAgo: 42,
     confidence: 84,
@@ -55,8 +61,8 @@ const INITIAL_LOGS: CareLogItem[] = [
   {
     id: 'log-2',
     type: 'feed',
-    title: 'Paced Bottle Feed (110 ml)',
-    detail: 'Expressed breastmilk · Upright burp completed',
+    title: 'Bottle Feed (110 ml / 3.7 oz)',
+    detail: 'Warm milk · Burped upright on shoulder',
     timestamp: '12:40 AM',
     minutesAgo: 136,
   },
@@ -64,7 +70,7 @@ const INITIAL_LOGS: CareLogItem[] = [
     id: 'log-3',
     type: 'diaper',
     title: 'Wet Diaper Changed',
-    detail: 'Barrier cream applied · Normal output',
+    detail: 'Diaper cream applied · Clean & comfortable',
     timestamp: '12:25 AM',
     minutesAgo: 151,
   },
@@ -72,7 +78,7 @@ const INITIAL_LOGS: CareLogItem[] = [
     id: 'log-4',
     type: 'sleep',
     title: 'Night Sleep Stretch',
-    detail: 'Duration 2h 55m · Womb brown noise active',
+    detail: 'Slept 2h 55m · Womb brown noise playing',
     timestamp: '09:30 PM',
     minutesAgo: 326,
   },
@@ -90,15 +96,23 @@ const INITIAL_ANALYSIS: CryAnalysisResult = {
   immediateSoothingAction:
     'Apply gentle bicycle legs and counter-clockwise tummy massage.',
   acousticSignature:
-    'High-tension "Eairh" strained abdominal resonance (~610 Hz peak) with constricted glottal pauses.',
+    'Tight tummy sound ("Eairh" pattern) — baby likely needs help passing a burp or gas bubble.',
   soothingSteps: [
-    'Lay infant on back and slowly cycle legs in a bicycle motion for 60 seconds',
-    'Use warm fingertips for gentle clockwise circles around the navel',
-    'Hold in the "Colic Carry" (tummy-down along your forearm) with gentle patting',
+    'Lay baby gently on their back and slowly pedal their legs like a bicycle for 60 seconds',
+    'Use warm fingertips to trace slow, gentle circles around the belly button',
+    'Hold baby upright against your shoulder or tummy-down along your forearm and pat gently',
   ],
   engineUsed: 'local-acoustic-fallback',
   modelName: 'qwen2-audio',
   latencyMs: 185,
+};
+
+const FRIENDLY_CATEGORY_TITLE: Record<string, string> = {
+  'Gas / Colic': 'Tummy Gas or Needs to Burp',
+  Hunger: 'Hungry — Ready for a Feeding',
+  'Sleep Regression / Overtired': 'Tired — Ready for a Nap or Sleep',
+  'Discomfort / Wet Diaper': 'Uncomfortable — Check Diaper or Clothing',
+  'Needs Soothing': 'Wants Cuddles & Gentle Comfort',
 };
 
 export default function HomePage() {
@@ -110,6 +124,12 @@ export default function HomePage() {
   const [logFilter, setLogFilter] = useState<
     'all' | 'cry' | 'feed' | 'diaper'
   >('all');
+
+  // Caregiver Role & Large Easy-Read Text Accessibility State
+  const [caregiverRole, setCaregiverRole] = useState<CaregiverRole>('parent');
+  const [largeText, setLargeText] = useState(false);
+  const [showAdvancedTech, setShowAdvancedTech] = useState(false);
+  const [show3DVisualizer, setShow3DVisualizer] = useState(true);
 
   // Theme & Brand Logo Craft State
   const [themeSetting, setThemeSetting] = useState<ThemeSetting>('nocturne');
@@ -147,7 +167,7 @@ export default function HomePage() {
   const [quickLogType, setQuickLogType] = useState<'feed' | 'diaper' | 'sleep'>(
     'feed'
   );
-  const [quickLogNote, setQuickLogNote] = useState('120 ml paced bottle feed');
+  const [quickLogNote, setQuickLogNote] = useState('120 ml (4 oz) warm bottle feed');
 
   // Soothing step 60s timer
   const [soothingTimerSecs, setSoothingTimerSecs] = useState<number | null>(
@@ -174,6 +194,14 @@ export default function HomePage() {
   });
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
 
+  // Sync Large Text Mode with root <html> attribute
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      'data-large-text',
+      largeText ? 'true' : 'false'
+    );
+  }, [largeText]);
+
   // Synchronize Theme with DOM & Browser Meta Theme-Color (web.dev/learn/design/theming)
   useEffect(() => {
     const applyTheme = (mode: ThemeSetting) => {
@@ -199,7 +227,6 @@ export default function HomePage() {
       document.documentElement.style.backgroundColor = bgHex;
       document.body.style.backgroundColor = bgHex;
 
-      // Update <meta name="theme-color"> for seamless mobile status bar & overscroll
       const metaTags = document.querySelectorAll('meta[name="theme-color"]');
       if (metaTags.length > 0) {
         metaTags.forEach((tag) => tag.setAttribute('content', bgHex));
@@ -256,7 +283,7 @@ export default function HomePage() {
         checking: false,
         online: false,
         models: [],
-        message: 'Unable to reach local Ollama endpoint',
+        message: 'Automatic cloud & on-device cry analyzer is active.',
       });
     }
   }, [ollamaBaseUrl]);
@@ -287,10 +314,14 @@ export default function HomePage() {
         minute: '2-digit',
       });
 
+      const friendlyTitle =
+        FRIENDLY_CATEGORY_TITLE[result.primaryCategory] ||
+        result.primaryCategory;
+
       const newEntry: CareLogItem = {
         id: `cry-${Date.now()}`,
         type: 'cry',
-        title: `${result.primaryCategory} Decoded`,
+        title: `${friendlyTitle}`,
         detail: result.immediateSoothingAction,
         timestamp: nowTime,
         minutesAgo: 0,
@@ -338,7 +369,7 @@ export default function HomePage() {
       id: `care-${Date.now()}`,
       type: quickLogType,
       title: titleMap[quickLogType],
-      detail: quickLogNote.trim() || 'Routine nursery check completed',
+      detail: quickLogNote.trim() || 'Routine baby care check completed',
       timestamp: nowTime,
       minutesAgo: 0,
     };
@@ -367,8 +398,8 @@ export default function HomePage() {
           {
             id: `feed-${Date.now()}`,
             type: 'feed',
-            title: 'Feeding Completed',
-            detail: 'Logged via 3:00 AM one-tap nursery counter',
+            title: 'Baby Fed Just Now',
+            detail: 'Marked via one-tap caregiver button',
             timestamp: nowTime,
             minutesAgo: 0,
           },
@@ -380,8 +411,8 @@ export default function HomePage() {
           {
             id: `diaper-${Date.now()}`,
             type: 'diaper',
-            title: 'Clean Diaper Change',
-            detail: 'Logged via 3:00 AM one-tap nursery counter',
+            title: 'Fresh Diaper Change',
+            detail: 'Marked via one-tap caregiver button',
             timestamp: nowTime,
             minutesAgo: 0,
           },
@@ -393,8 +424,8 @@ export default function HomePage() {
           {
             id: `sleep-${Date.now()}`,
             type: 'sleep',
-            title: 'Infant Settled to Sleep',
-            detail: 'Wake window reset via nursery counter',
+            title: 'Baby Fell Asleep',
+            detail: 'Sleep timer started via one-tap caregiver button',
             timestamp: nowTime,
             minutesAgo: 0,
           },
@@ -404,6 +435,21 @@ export default function HomePage() {
     },
     [careLogs, saveLogs]
   );
+
+  // Speak soothing steps aloud for hands-free caregivers / grandparents
+  const speakResultAloud = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const friendlyHeading =
+      FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] ||
+      analysis.primaryCategory;
+    const text = `Baby most likely needs help with ${friendlyHeading}. ${analysis.immediateSoothingAction}. ${
+      analysis.soothingSteps ? analysis.soothingSteps.join('. ') : ''
+    }`;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.92;
+    window.speechSynthesis.speak(utter);
+  };
 
   // Toggle Native Screen Wake Lock
   const toggleWakeLock = async () => {
@@ -433,13 +479,16 @@ export default function HomePage() {
     }
   };
 
-  // Native Web Share API for Night Shift Summary
+  // Native Web Share API for Caregiver Handoff Summary
   const handleShareSummary = async () => {
-    const summaryText = `Kora Nursery Summary: Latest Cry Decoded as ${analysis.primaryCategory} (${analysis.confidenceScore}% confidence). Action: ${analysis.immediateSoothingAction}. Last fed ${minsSinceFeed}m ago.`;
+    const friendlyHeading =
+      FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] ||
+      analysis.primaryCategory;
+    const summaryText = `Baby Care Update: Latest cry checked — ${friendlyHeading} (${analysis.confidenceScore}% match). What helped: ${analysis.immediateSoothingAction}. Last fed ${minsSinceFeed} mins ago, last diaper ${minsSinceDiaper} mins ago.`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
-          title: 'Kora Nursery Night Shift Summary',
+          title: 'Baby Care Handoff Update',
           text: summaryText,
           url: window.location.href,
         });
@@ -449,7 +498,7 @@ export default function HomePage() {
       }
     }
     navigator.clipboard.writeText(summaryText);
-    setShareFeedback('Summary copied');
+    setShareFeedback('Update Copied!');
     setTimeout(() => setShareFeedback(null), 2000);
   };
 
@@ -481,6 +530,10 @@ export default function HomePage() {
     logFilter === 'all' ? true : item.type === logFilter
   );
 
+  const friendlyHeadline =
+    FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] ||
+    analysis.primaryCategory;
+
   return (
     <div className="min-h-dvh bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col transition-colors">
       <OfflineIndicator />
@@ -489,43 +542,43 @@ export default function HomePage() {
       <header className="flex items-center justify-between gap-8 px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]/90 backdrop-blur-md sticky top-0 z-30">
         {/* Zone 1: Single text element wordmark */}
         <a
-          href="#studio"
+          href="#care-guide"
           className="text-lg font-bold tracking-tight text-[var(--text-primary)] whitespace-nowrap shrink-0"
         >
-          Kora
+          Kora Baby Care
         </a>
 
-        {/* Zone 2: 5 concise single-line text navigation links */}
+        {/* Zone 2: 5 clear, everyday navigation links for all caregivers */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--text-secondary)]">
           <a
-            href="#studio"
+            href="#care-guide"
             className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
           >
-            3D Studio
+            Care Guide
           </a>
           <a
             href="#decoder"
             className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
           >
-            Cry Decoder
+            Cry Translator
+          </a>
+          <a
+            href="#soundscape"
+            className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
+          >
+            Calming Sounds
           </a>
           <a
             href="#care-log"
             className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
           >
-            Nursery Log
+            Care Log
           </a>
           <a
             href="#sleep-trends"
             className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
           >
-            Sleep Trends
-          </a>
-          <a
-            href="#offline-llm"
-            className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
-          >
-            Offline LLM
+            Sleep Chart
           </a>
         </nav>
 
@@ -534,20 +587,17 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setShowQuickLogModal(true)}
-            className="min-h-[40px] px-4 py-2 text-xs font-semibold text-stone-950 bg-[var(--accent-primary)] hover:opacity-95 rounded-xl transition-opacity whitespace-nowrap shrink-0"
+            className="min-h-[42px] px-4 py-2 text-xs font-bold text-stone-950 bg-[var(--accent-primary)] hover:opacity-95 rounded-xl transition-opacity whitespace-nowrap shrink-0"
           >
-            Log Care Event
+            + Log Feed / Diaper
           </button>
         </div>
       </header>
 
       {/* Main 1440px Multi-Column Workspace */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col gap-8">
-        {/* Brand Identity, Adaptive Theme Switcher & Native PWA Controls Bar */}
-        <section
-          id="studio"
-          className="flex flex-col gap-6"
-        >
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-7">
+        {/* Top Section: Welcoming Brand Header + Caregiver Handoff Card + Quick One-Tap Routine Strip */}
+        <section id="care-guide" className="flex flex-col gap-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-[var(--border-subtle)]">
             <div className="flex items-start sm:items-center gap-4">
               {/* Tactile Squircle Brand Emblem inspired by IMG_5047.jpeg */}
@@ -563,43 +613,41 @@ export default function HomePage() {
                   )
                 }
                 className="group relative rounded-2xl focus:outline-none shrink-0"
-                title="Click to cycle Kora tactile squircle icon craft variants"
+                title="Tap to switch icon style"
               >
                 <KoraLogo variant={logoVariant} size={56} />
               </button>
 
               <div>
                 <div className="text-xs text-[var(--text-secondary)] mb-1">
-                  <span>Kora Acoustic Studio</span>
+                  <span>Easy for Parents, Grandparents & Babysitters</span>
                   <span aria-hidden="true" className="mx-2">
                     ·
                   </span>
-                  <span>Local Multimodal Infant Cry Analyzer</span>
-                  <span aria-hidden="true" className="mx-2">
-                    ·
-                  </span>
-                  <span className="font-mono text-[var(--accent-primary)]">
-                    {offlinePackReady ? 'Offline Pack Ready' : 'WebGL 2.0 + PWA'}
+                  <span className="text-[var(--accent-primary)] font-semibold">
+                    {offlinePackReady
+                      ? 'Works Offline'
+                      : 'Private & Instant'}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-                  3D Infant Cry Acoustic Studio & Tactile Nursery Companion
+                  Baby Cry Translator & Simple Care Helper
                 </h1>
               </div>
             </div>
 
-            {/* Adaptive Theme Switcher + Native Device Utilities + PWA Install */}
+            {/* Easy Lighting Mode + Screen Awake + Share Update */}
             <div className="flex flex-wrap items-center gap-2">
               <div
                 className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)]"
                 role="group"
-                aria-label="Adaptive color theme selector"
+                aria-label="Lighting mode"
               >
                 {(
                   [
-                    { id: 'nocturne', label: '3 AM Amber', icon: Moon },
-                    { id: 'lunar', label: 'Lunar Dark', icon: Sparkles },
-                    { id: 'daylight', label: 'Daylight', icon: Sun },
+                    { id: 'nocturne', label: 'Night Glow', icon: Moon },
+                    { id: 'lunar', label: 'Soft Blue', icon: Sparkles },
+                    { id: 'daylight', label: 'Bright Day', icon: Sun },
                   ] as const
                 ).map((t) => {
                   const Icon = t.icon;
@@ -609,9 +657,9 @@ export default function HomePage() {
                       key={t.id}
                       type="button"
                       onClick={() => setThemeSetting(t.id)}
-                      className={`min-h-[34px] px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                      className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                         active
-                          ? 'bg-[var(--accent-primary)] text-stone-950 font-semibold'
+                          ? 'bg-[var(--accent-primary)] text-stone-950 font-bold'
                           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
@@ -625,150 +673,155 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={toggleWakeLock}
-                className={`min-h-[40px] px-3 py-2 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                className={`min-h-[40px] px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                   wakeLockActive
                     ? 'bg-amber-400/15 border-amber-400/40 text-[var(--accent-primary)]'
                     : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
-                title="Keep screen awake during 3:00 AM nursery care"
+                title="Keep phone screen from turning off while caring for baby"
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>{wakeLockActive ? 'Wake Lock On' : 'Keep Awake'}</span>
+                <Smartphone className="w-4 h-4" />
+                <span>{wakeLockActive ? 'Screen Stays On' : 'Keep Screen On'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleShareSummary}
-                className="min-h-[40px] px-3 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
               >
-                <Share2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                <span>{shareFeedback || 'Share Shift'}</span>
+                <Share2 className="w-4 h-4 text-[var(--accent-primary)]" />
+                <span>{shareFeedback || 'Send Update to Family'}</span>
               </button>
 
               <PWAInstallButton />
             </div>
           </div>
 
-          {/* 4-Column Infant Routine Context Strip */}
+          {/* Family & Babysitter At-a-Glance Handoff Card + Large Text Switch */}
+          <CaregiverHandoffCard
+            role={caregiverRole}
+            onRoleChange={(nextRole) => {
+              setCaregiverRole(nextRole);
+              if (nextRole === 'grandparent') {
+                setShow3DVisualizer(false);
+              } else {
+                setShow3DVisualizer(true);
+              }
+            }}
+            largeText={largeText}
+            onToggleLargeText={() => setLargeText((prev) => !prev)}
+            minsSinceFeed={minsSinceFeed}
+            minsSinceSleep={minsSinceSleep}
+            minsSinceDiaper={minsSinceDiaper}
+          />
+
+          {/* 4 Big One-Tap Baby Status Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs text-[var(--text-secondary)]">
-                  Last Feeding
+                <div className="text-xs font-medium text-[var(--text-secondary)]">
+                  Last Fed
                 </div>
                 <div className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
                   {formatMins(minsSinceFeed)}
                 </div>
-                <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                <div className="text-xs text-[var(--text-secondary)] mt-0.5">
                   {minsSinceFeed > 150
-                    ? 'Elevated hunger likelihood'
-                    : 'Within 2.5h comfort window'}
+                    ? 'Likely getting hungry soon'
+                    : 'Comfortable & recently fed'}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => handleQuickResetCounter('feed')}
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--accent-primary)] transition-colors whitespace-nowrap shrink-0"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--accent-primary)] transition-colors whitespace-nowrap shrink-0"
               >
-                Fed Now
+                Fed Just Now
               </button>
             </div>
 
             <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs text-[var(--text-secondary)]">
-                  Current Wake Window
+                <div className="text-xs font-medium text-[var(--text-secondary)]">
+                  Awake Time
                 </div>
                 <div className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
                   {formatMins(minsSinceSleep)}
                 </div>
-                <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                <div className="text-xs text-[var(--text-secondary)] mt-0.5">
                   {minsSinceSleep > 75
-                    ? 'Approaching sleep threshold'
-                    : 'Optimal alert window'}
+                    ? 'Ready for a nap soon'
+                    : 'Happy & rested'}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => handleQuickResetCounter('sleep')}
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--accent-primary)] transition-colors whitespace-nowrap shrink-0"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--accent-primary)] transition-colors whitespace-nowrap shrink-0"
               >
-                Asleep Now
+                Fell Asleep
               </button>
             </div>
 
             <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs text-[var(--text-secondary)]">
-                  Last Diaper Check
+                <div className="text-xs font-medium text-[var(--text-secondary)]">
+                  Last Diaper Change
                 </div>
                 <div className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
                   {formatMins(minsSinceDiaper)}
                 </div>
-                <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                  {minsSinceDiaper > 180
-                    ? 'Check wetness indicator'
-                    : 'Recently checked'}
+                <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  {minsSinceDiaper > 150
+                    ? 'Time to check diaper'
+                    : 'Clean & dry'}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => handleQuickResetCounter('diaper')}
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--accent-primary)] transition-colors whitespace-nowrap shrink-0"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--accent-primary)] transition-colors whitespace-nowrap shrink-0"
               >
-                Changed
+                Just Changed
               </button>
             </div>
 
             <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs text-[var(--text-secondary)]">
-                  Cries Decoded Tonight
+                <div className="text-xs font-medium text-[var(--text-secondary)]">
+                  Latest Cry Result
                 </div>
-                <div className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
-                  {careLogs.filter((l) => l.type === 'cry').length} samples
+                <div className="text-base font-bold text-[var(--text-primary)] mt-0.5 truncate max-w-[150px]">
+                  {analysis.primaryCategory}
                 </div>
-                <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                  Confidence{' '}
-                  <span className="font-mono tabular-nums text-[var(--text-primary)]">
+                <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  Match confidence:{' '}
+                  <span className="font-mono tabular-nums font-bold text-[var(--text-primary)]">
                     {analysis.confidenceScore}%
                   </span>
                 </div>
               </div>
-              <a
-                href="/llm.txt"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+              <button
+                type="button"
+                onClick={speakResultAloud}
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+                title="Read soothing steps out loud"
               >
-                <FileText className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                <span>llm.txt</span>
-              </a>
+                <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
+                <span>Read Aloud</span>
+              </button>
             </div>
           </div>
         </section>
 
-        {/* Primary 12-Column Split: Left (3D Interactive Sculpture + Recorder + Classification) | Right (Voice + Soundscape + Care Log) */}
+        {/* Primary 12-Column Split: Left (Cry Recorder + Clear Soothing Guide + Optional 3D) | Right (Calming Sounds + Voice + Care Log) */}
         <div
           id="decoder"
           className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
         >
           {/* Left 7 Columns */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            {/* Three.js / WebGL 3D Interactive Acoustic Sculpture */}
-            <AcousticOrb3D
-              activeCategory={analysis.primaryCategory}
-              confidenceScore={analysis.confidenceScore}
-              isRecording={recState.recording}
-              analyzing={recState.analyzing}
-              audioEnergy={recState.energy}
-              themeMode={resolvedTheme}
-              onSelectCryNode={(preset) =>
-                setExternalPresetTrigger({ preset, ts: Date.now() })
-              }
-            />
-
-            {/* 5-Second Audio Recorder */}
+            {/* Step 1: 5-Second Audio Recorder (Placed first so nobody has to scroll past 3D graphics to use the mic!) */}
             <CryRecorder
               onClassificationResult={handleClassificationResult}
               onRecordingStateChange={handleRecordingStateChange}
@@ -785,7 +838,7 @@ export default function HomePage() {
               }}
             />
 
-            {/* Structured Cry Analysis Breakdown Card */}
+            {/* Step 2: Plain-English "What Baby Likely Needs & How to Calm" Card */}
             <motion.div
               key={analysis.primaryCategory + analysis.confidenceScore}
               initial={{ opacity: 0.85, y: 6 }}
@@ -795,42 +848,22 @@ export default function HomePage() {
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[var(--border-subtle)]">
                 <div>
-                  <div className="text-xs text-[var(--text-secondary)]">
-                    <span>Primary Classification</span>
-                    <span aria-hidden="true" className="mx-2">
-                      ·
-                    </span>
-                    <span className="font-mono tabular-nums text-[var(--text-primary)]">
-                      {analysis.engineUsed === 'ollama-local'
-                        ? `Ollama (${ollamaModel})`
-                        : analysis.engineUsed === 'gemini-multimodal'
-                          ? 'Gemini 3.8 Multimodal'
-                          : 'Local Acoustic Formant'}
-                    </span>
-                    {analysis.latencyMs && (
-                      <>
-                        <span aria-hidden="true" className="mx-2">
-                          ·
-                        </span>
-                        <span className="font-mono tabular-nums text-[var(--accent-primary)]">
-                          {analysis.latencyMs}ms
-                        </span>
-                      </>
-                    )}
+                  <div className="text-xs font-semibold text-[var(--accent-primary)]">
+                    Step 2: What Baby Likely Needs Right Now
                   </div>
                   <h2 className="text-2xl font-bold text-[var(--text-primary)] mt-1">
-                    {analysis.primaryCategory}
+                    {friendlyHeadline}
                   </h2>
                   {analysis.acousticSignature && (
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                       {analysis.acousticSignature}
                     </p>
                   )}
                 </div>
 
-                <div className="flex flex-col sm:items-end shrink-0">
+                <div className="flex items-center sm:flex-col sm:items-end justify-between gap-2 shrink-0">
                   <span className="text-xs text-[var(--text-secondary)]">
-                    Confidence Score
+                    Likelihood Match
                   </span>
                   <span className="text-3xl font-bold font-mono tabular-nums text-[var(--accent-primary)]">
                     {analysis.confidenceScore}%
@@ -838,36 +871,115 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* 4-Axis Probability Breakdown */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                  <span>Probability Breakdown</span>
-                  <span className="font-mono tabular-nums">
-                    Distribution (%)
-                  </span>
+              {/* Immediate Soothing Action & Interactive 60s Action Checklist (Moved ABOVE probabilities for instant actionability) */}
+              <div className="p-5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold text-[var(--accent-primary)]">
+                      What to Do First
+                    </div>
+                    <p className="text-base font-bold text-[var(--text-primary)] mt-1 leading-snug">
+                      {analysis.immediateSoothingAction}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={speakResultAloud}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                    >
+                      <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
+                      <span>Read Steps Aloud</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSoothingTimerSecs((prev) =>
+                          prev === null ? 60 : null
+                        )
+                      }
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-xs font-bold text-[var(--accent-primary)] flex items-center gap-2 transition-colors whitespace-nowrap"
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span className="font-mono tabular-nums">
+                        {soothingTimerSecs !== null
+                          ? `Timer: ${soothingTimerSecs}s`
+                          : '1-Min Timer'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {analysis.soothingSteps && analysis.soothingSteps.length > 0 && (
+                  <div className="pt-3 border-t border-[var(--border-subtle)] flex flex-col gap-2.5">
+                    <div className="text-xs font-medium text-[var(--text-secondary)]">
+                      Easy Step-by-Step Checklist (Tap each step as you try it):
+                    </div>
+                    {analysis.soothingSteps.map((step, idx) => {
+                      const done = Boolean(completedSteps[idx]);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() =>
+                            setCompletedSteps((prev) => ({
+                              ...prev,
+                              [idx]: !prev[idx],
+                            }))
+                          }
+                          className={`min-h-[48px] px-4 py-3 rounded-xl border text-left text-xs sm:text-sm flex items-center gap-3 transition-colors ${
+                            done
+                              ? 'bg-emerald-950/30 border-emerald-500/30 text-[var(--text-secondary)] line-through'
+                              : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
+                          }`}
+                        >
+                          <CheckCircle2
+                            className={`w-5 h-5 shrink-0 ${
+                              done
+                                ? 'text-emerald-400'
+                                : 'text-[var(--accent-primary)]'
+                            }`}
+                          />
+                          <span>
+                            <strong>Step {idx + 1}:</strong> {step}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 4-Axis Plain-English Possibility Breakdown */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                  <span>Other Possible Reasons for This Cry</span>
+                  <span className="font-mono tabular-nums">Likelihood (%)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {(
                     [
                       {
                         key: 'gas',
-                        label: 'Gas / Colic ("Eairh")',
+                        label: 'Tummy Gas / Needs to Burp',
                         val: analysis.probabilityBreakdown.gas,
                       },
                       {
                         key: 'hunger',
-                        label: 'Hunger ("Neh")',
+                        label: 'Hungry / Ready for Milk',
                         val: analysis.probabilityBreakdown.hunger,
                       },
                       {
                         key: 'overtired',
-                        label: 'Overtired ("Owh")',
+                        label: 'Tired / Ready for Sleep',
                         val: analysis.probabilityBreakdown.overtired,
                       },
                       {
                         key: 'discomfort',
-                        label: 'Discomfort ("Heh")',
+                        label: 'Wet Diaper / Too Warm or Cool',
                         val: analysis.probabilityBreakdown.discomfort,
                       },
                     ] as const
@@ -889,17 +1001,17 @@ export default function HomePage() {
                           <span
                             className={
                               isTop
-                                ? 'font-semibold text-[var(--accent-primary)]'
+                                ? 'font-bold text-[var(--accent-primary)]'
                                 : 'text-[var(--text-primary)]'
                             }
                           >
                             {item.label}
                           </span>
-                          <span className="font-mono tabular-nums font-semibold text-[var(--text-primary)]">
+                          <span className="font-mono tabular-nums font-bold text-[var(--text-primary)]">
                             {item.val}%
                           </span>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-stone-800/60 overflow-hidden">
+                        <div className="w-full h-2.5 rounded-full bg-stone-800/60 overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{
@@ -921,82 +1033,47 @@ export default function HomePage() {
                   })}
                 </div>
               </div>
-
-              {/* Immediate Soothing Action & Interactive 60s Action Checklist */}
-              <div className="p-5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-semibold text-[var(--accent-primary)]">
-                      Immediate Soothing Action
-                    </div>
-                    <p className="text-sm font-medium text-[var(--text-primary)] mt-1">
-                      {analysis.immediateSoothingAction}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSoothingTimerSecs((prev) =>
-                        prev === null ? 60 : null
-                      )
-                    }
-                    className="min-h-[40px] px-3.5 py-2 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-xs font-semibold text-[var(--accent-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="font-mono tabular-nums">
-                      {soothingTimerSecs !== null
-                        ? `Soothing Timer: ${soothingTimerSecs}s`
-                        : 'Start 60s Soothing Timer'}
-                    </span>
-                  </button>
-                </div>
-
-                {analysis.soothingSteps && analysis.soothingSteps.length > 0 && (
-                  <div className="pt-3 border-t border-[var(--border-subtle)] flex flex-col gap-2">
-                    <div className="text-xs text-[var(--text-secondary)]">
-                      Step-by-Step Soothing Protocol (Tap to check off)
-                    </div>
-                    {analysis.soothingSteps.map((step, idx) => {
-                      const done = Boolean(completedSteps[idx]);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() =>
-                            setCompletedSteps((prev) => ({
-                              ...prev,
-                              [idx]: !prev[idx],
-                            }))
-                          }
-                          className={`min-h-[44px] px-3.5 py-2.5 rounded-xl border text-left text-xs flex items-center gap-3 transition-colors ${
-                            done
-                              ? 'bg-emerald-950/30 border-emerald-500/30 text-[var(--text-secondary)] line-through'
-                              : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
-                          }`}
-                        >
-                          <CheckCircle2
-                            className={`w-4 h-4 shrink-0 ${
-                              done
-                                ? 'text-emerald-400'
-                                : 'text-[var(--text-secondary)]'
-                            }`}
-                          />
-                          <span>
-                            0{idx + 1}. {step}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
             </motion.div>
+
+            {/* Interactive 3D Sound Orb (Can be hidden in Grandparent View for maximum simplicity) */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">
+                  3D Interactive Cry Sound Visualizer
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShow3DVisualizer((prev) => !prev)}
+                  className="text-xs font-semibold text-[var(--accent-primary)] hover:underline"
+                >
+                  {show3DVisualizer ? 'Hide 3D Orb' : 'Show 3D Orb'}
+                </button>
+              </div>
+
+              {show3DVisualizer && (
+                <AcousticOrb3D
+                  activeCategory={analysis.primaryCategory}
+                  confidenceScore={analysis.confidenceScore}
+                  isRecording={recState.recording}
+                  analyzing={recState.analyzing}
+                  audioEnergy={recState.energy}
+                  themeMode={resolvedTheme}
+                  onSelectCryNode={(preset) =>
+                    setExternalPresetTrigger({ preset, ts: Date.now() })
+                  }
+                />
+              )}
+            </div>
           </div>
 
-          {/* Right 5 Columns: Voice Assistant + Soundscape + Nursery Log + Offline LLM */}
+          {/* Right 5 Columns: Calming Soundscape Player + Hands-Free Voice + Shared Family Care Log */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Bidirectional Voice Control & Neural TTS */}
+            {/* Step 3: Calming White Noise & Heartbeat Sounds (Placed at top of right column so caregivers can play soothing sounds immediately) */}
+            <div id="soundscape">
+              <SoundscapePlayer />
+            </div>
+
+            {/* Hands-Free Voice Reader & Voice Commands */}
             <VoiceControlBar
               analysis={analysis}
               onTriggerPresetCry={(preset) =>
@@ -1005,12 +1082,7 @@ export default function HomePage() {
               onQuickLog={handleQuickResetCounter}
             />
 
-            {/* Soundscape Synthesizer */}
-            <div id="soundscape">
-              <SoundscapePlayer />
-            </div>
-
-            {/* Nursery Care & Decode Log */}
+            {/* Shared Family & Babysitter Care Log */}
             <div
               id="care-log"
               className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-4"
@@ -1018,20 +1090,20 @@ export default function HomePage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Nursery Care & Cry Log
+                    Shared Family & Babysitter Log
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Correlates feeding & sleep intervals with cry probabilities
+                    Keep everyone on the same page about feeds, naps & diapers
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowQuickLogModal(true)}
-                  className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+                  className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
                 >
-                  <Plus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                  <span>Add Entry</span>
+                  <Plus className="w-4 h-4 text-[var(--accent-primary)]" />
+                  <span>Add Note</span>
                 </button>
               </div>
 
@@ -1039,9 +1111,9 @@ export default function HomePage() {
               <div className="flex items-center gap-1 p-1 bg-[var(--bg-canvas)] rounded-xl border border-[var(--border-subtle)]">
                 {(
                   [
-                    { id: 'all', label: 'All' },
+                    { id: 'all', label: 'All Events' },
                     { id: 'cry', label: 'Cries' },
-                    { id: 'feed', label: 'Feeds' },
+                    { id: 'feed', label: 'Feedings' },
                     { id: 'diaper', label: 'Diapers' },
                   ] as const
                 ).map((tab) => (
@@ -1049,7 +1121,7 @@ export default function HomePage() {
                     key={tab.id}
                     type="button"
                     onClick={() => setLogFilter(tab.id)}
-                    className={`flex-1 min-h-[36px] px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+                    className={`flex-1 min-h-[38px] px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                       logFilter === tab.id
                         ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1074,7 +1146,7 @@ export default function HomePage() {
                     >
                       <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="font-semibold text-[var(--text-primary)] truncate">
+                          <span className="font-bold text-[var(--text-primary)] truncate">
                             {item.title}
                           </span>
                           <span
@@ -1086,19 +1158,6 @@ export default function HomePage() {
                           <span className="font-mono tabular-nums text-[var(--text-secondary)] shrink-0">
                             {item.timestamp}
                           </span>
-                          {item.confidence !== undefined && (
-                            <>
-                              <span
-                                aria-hidden="true"
-                                className="text-[var(--text-secondary)]"
-                              >
-                                ·
-                              </span>
-                              <span className="font-mono tabular-nums text-[var(--accent-primary)] shrink-0">
-                                {item.confidence}%
-                              </span>
-                            </>
-                          )}
                         </div>
                         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                           {item.detail}
@@ -1110,22 +1169,22 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={() => toggleLogResolved(item.id)}
-                            className={`min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap ${
+                            className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                               item.resolved
                                 ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30'
                                 : 'bg-[var(--bg-canvas)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]'
                             }`}
                           >
-                            {item.resolved ? 'Settled' : 'Mark Settled'}
+                            {item.resolved ? 'Baby Calm ✓' : 'Mark Calm'}
                           </button>
                         )}
                         <button
                           type="button"
                           onClick={() => deleteLogItem(item.id)}
                           aria-label="Delete log entry"
-                          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-rose-400 hover:bg-[var(--bg-canvas)] transition-colors"
+                          className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-rose-400 hover:bg-[var(--bg-canvas)] transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -1156,7 +1215,7 @@ export default function HomePage() {
                   kind === 'night'
                     ? `Night Sleep Stretch (+${hours}h)`
                     : `Daytime Nap (+${hours}h)`,
-                detail: 'Logged from Sleep Trend Analytics chart',
+                detail: 'Logged from Sleep Schedule & Trend Chart',
                 timestamp: nowTime,
                 minutesAgo: 0,
               },
@@ -1166,195 +1225,199 @@ export default function HomePage() {
           onStartWindDownTimer={() => setSoothingTimerSecs(60)}
         />
 
-        {/* Optional Offline On-Device LLM & Acoustic Weights Manager */}
-        <section id="offline-llm">
-          <OfflineModelManager
-            onOfflineModelStatusChange={setOfflinePackReady}
-          />
-        </section>
-
-        {/* Local Ollama & Vercel AI SDK Configuration Section */}
+        {/* Collapsible Technical & Offline AI Settings Drawer (Keeps UI clean for Grandparents & Babysitters) */}
         <section
-          id="ollama-setup"
-          className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-6"
+          id="offline-llm"
+          className="rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] overflow-hidden"
         >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[var(--border-subtle)]">
-            <div>
-              <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] mb-1">
-                <Sliders className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                <span>Local Hardware Inference Configuration</span>
-                <span aria-hidden="true">·</span>
-                <span className="font-mono text-[var(--text-primary)]">
-                  {ollamaStatus.online
-                    ? 'Ollama Daemon Connected'
-                    : 'Auto-Fallback Active'}
-                </span>
+          <button
+            type="button"
+            onClick={() => setShowAdvancedTech((prev) => !prev)}
+            className="w-full p-5 sm:p-6 flex items-center justify-between gap-4 text-left hover:bg-[var(--bg-elevated)]/40 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
+                <Sliders className="w-5 h-5 text-[var(--accent-primary)]" />
               </div>
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                Ollama & Vercel AI SDK Local Audio Pipeline
-              </h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                Configure your local OpenAI-compatible Ollama endpoint and keep
-                multi-modal weights warm in memory for instant 3:00 AM cry
-                checks.
-              </p>
+              <div>
+                <h2 className="text-base font-bold text-[var(--text-primary)]">
+                  Offline Mode & Advanced AI Settings (Optional)
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  Download offline cry packs for travel or connect a home computer running Ollama
+                </p>
+              </div>
             </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent-primary)] shrink-0">
+              <span>{showAdvancedTech ? 'Hide Settings' : 'Show Settings'}</span>
+              {showAdvancedTech ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </div>
+          </button>
 
-            <button
-              type="button"
-              onClick={checkOllamaConnection}
-              disabled={ollamaStatus.checking}
-              className="min-h-[40px] px-4 py-2 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 text-[var(--accent-primary)] ${
-                  ollamaStatus.checking ? 'animate-spin' : ''
-                }`}
+          {showAdvancedTech && (
+            <div className="p-6 pt-0 border-t border-[var(--border-subtle)] flex flex-col gap-6 mt-4">
+              <OfflineModelManager
+                onOfflineModelStatusChange={setOfflinePackReady}
               />
-              <span>Test Local Ollama Connection</span>
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left 6 cols: Endpoint & Mode Settings */}
-            <div className="lg:col-span-6 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-[var(--text-primary)]">
-                  Inference Routing Mode
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      { id: 'auto', label: 'Auto (Ollama + Fallback)' },
-                      { id: 'ollama', label: 'Ollama Local Only' },
-                      { id: 'gemini', label: 'Gemini Cloud Audio' },
-                    ] as const
-                  ).map((mode) => (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      onClick={() => setInferenceMode(mode.id)}
-                      className={`min-h-[40px] px-3 py-2 rounded-xl text-xs font-medium border transition-colors whitespace-nowrap truncate ${
-                        inferenceMode === mode.id
-                          ? 'bg-amber-400/15 border-amber-400/40 text-[var(--text-primary)]'
-                          : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              {/* Local Ollama & Vercel AI SDK Configuration Section */}
+              <div
+                id="ollama-setup"
+                className="p-6 rounded-3xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-6"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[var(--border-subtle)]">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] mb-1">
+                      <span>Local Home Server Connection</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="font-mono text-[var(--text-primary)]">
+                        {ollamaStatus.online
+                          ? 'Ollama Connected'
+                          : 'Automatic Built-In Analyzer Active'}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-[var(--text-primary)]">
+                      Ollama & Vercel AI SDK Local Audio Pipeline
+                    </h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={checkOllamaConnection}
+                    disabled={ollamaStatus.checking}
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
+                  >
+                    <RefreshCw
+                      className={`w-3.5 h-3.5 text-[var(--accent-primary)] ${
+                        ollamaStatus.checking ? 'animate-spin' : ''
                       }`}
-                    >
-                      {mode.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="ollama-url"
-                    className="text-xs font-medium text-[var(--text-primary)]"
-                  >
-                    Ollama OpenAI Base URL
-                  </label>
-                  <input
-                    id="ollama-url"
-                    type="text"
-                    value={ollamaBaseUrl}
-                    onChange={(e) => setOllamaBaseUrl(e.target.value)}
-                    className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-amber-400/50"
-                  />
+                    />
+                    <span>Check Local Connection</span>
+                  </button>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="ollama-model"
-                    className="text-xs font-medium text-[var(--text-primary)]"
-                  >
-                    Multimodal Model Name
-                  </label>
-                  <input
-                    id="ollama-model"
-                    type="text"
-                    value={ollamaModel}
-                    onChange={(e) => setOllamaModel(e.target.value)}
-                    className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-amber-400/50"
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <div className="lg:col-span-6 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-[var(--text-primary)]">
+                        Analyzer Mode
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(
+                          [
+                            { id: 'auto', label: 'Automatic (Recommended)' },
+                            { id: 'ollama', label: 'Local Ollama Only' },
+                            { id: 'gemini', label: 'Cloud AI' },
+                          ] as const
+                        ).map((mode) => (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => setInferenceMode(mode.id)}
+                            className={`min-h-[40px] px-3 py-2 rounded-xl text-xs font-medium border transition-colors whitespace-nowrap truncate ${
+                              inferenceMode === mode.id
+                                ? 'bg-amber-400/15 border-amber-400/40 text-[var(--text-primary)]'
+                                : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {mode.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-              <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] leading-relaxed">
-                {ollamaStatus.online ? (
-                  <span>
-                    Connected to local Ollama at{' '}
-                    <span className="font-mono text-[var(--text-primary)]">
-                      {ollamaBaseUrl}
-                    </span>
-                    . Installed models:{' '}
-                    {ollamaStatus.models.length > 0
-                      ? ollamaStatus.models.join(', ')
-                      : 'none listed'}
-                    .
-                  </span>
-                ) : (
-                  <span>
-                    {ollamaStatus.message ||
-                      'Local Ollama daemon not currently detected on localhost:11434. Requests automatically route through the multimodal fallback so you can test immediately.'}
-                  </span>
-                )}
-              </div>
-            </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label
+                          htmlFor="ollama-url"
+                          className="text-xs font-medium text-[var(--text-primary)]"
+                        >
+                          Ollama URL
+                        </label>
+                        <input
+                          id="ollama-url"
+                          type="text"
+                          value={ollamaBaseUrl}
+                          onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                          className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)]"
+                        />
+                      </div>
 
-            {/* Right 6 cols: Terminal Setup Commands from Codex Spec */}
-            <div className="lg:col-span-6 flex flex-col gap-3">
-              <div className="text-xs font-medium text-[var(--text-primary)]">
-                Local Ollama Setup & Warm-Memory Commands
-              </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label
+                          htmlFor="ollama-model"
+                          className="text-xs font-medium text-[var(--text-primary)]"
+                        >
+                          Audio Model Name
+                        </label>
+                        <input
+                          id="ollama-model"
+                          type="text"
+                          value={ollamaModel}
+                          onChange={(e) => setOllamaModel(e.target.value)}
+                          className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)]"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              {[
-                {
-                  id: 'cmd-pull',
-                  label:
-                    '01. Pull multimodal audio model supporting base64/PCM input',
-                  cmd: 'ollama pull qwen2-audio',
-                },
-                {
-                  id: 'cmd-serve',
-                  label:
-                    '02. Keep model warm in RAM for 24h to prevent 3:00 AM cold-start latency',
-                  cmd: 'OLLAMA_KEEP_ALIVE=24h ollama serve',
-                },
-              ].map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-2"
-                >
-                  <span className="text-xs text-[var(--text-secondary)]">
-                    {item.label}
-                  </span>
-                  <div className="flex items-center justify-between gap-2 bg-[var(--bg-elevated)] px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)]">
-                    <code className="text-xs font-mono text-[var(--accent-primary)] truncate">
-                      {item.cmd}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => copyCommand(item.cmd, item.id)}
-                      className="min-h-[32px] px-2.5 py-1 rounded-lg bg-[var(--bg-canvas)] hover:opacity-90 text-xs text-[var(--text-primary)] flex items-center gap-1.5 transition-opacity whitespace-nowrap shrink-0"
-                    >
-                      {copiedCmd === item.id ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
+                  <div className="lg:col-span-6 flex flex-col gap-3">
+                    <div className="text-xs font-medium text-[var(--text-primary)]">
+                      Optional Home Computer Setup Commands
+                    </div>
+
+                    {[
+                      {
+                        id: 'cmd-pull',
+                        label: '01. Download local audio model',
+                        cmd: 'ollama pull qwen2-audio',
+                      },
+                      {
+                        id: 'cmd-serve',
+                        label: '02. Keep model ready in memory for 24 hours',
+                        cmd: 'OLLAMA_KEEP_ALIVE=24h ollama serve',
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-2"
+                      >
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          {item.label}
+                        </span>
+                        <div className="flex items-center justify-between gap-2 bg-[var(--bg-elevated)] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)]">
+                          <code className="text-xs font-mono text-[var(--accent-primary)] truncate">
+                            {item.cmd}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => copyCommand(item.cmd, item.id)}
+                            className="min-h-[32px] px-2.5 py-1 rounded-lg bg-[var(--bg-canvas)] text-xs text-[var(--text-primary)] flex items-center gap-1.5 shrink-0"
+                          >
+                            {copiedCmd === item.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
       </main>
 
@@ -1376,12 +1439,12 @@ export default function HomePage() {
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-[var(--text-primary)]">
-                  Log Nursery Care Event
+                  Log Feeding, Diaper, or Nap
                 </h3>
                 <button
                   type="button"
                   onClick={() => setShowQuickLogModal(false)}
-                  className="min-h-[36px] px-3 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className="min-h-[38px] px-3 py-1 rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                   Cancel
                 </button>
@@ -1397,17 +1460,17 @@ export default function HomePage() {
                       {
                         id: 'feed',
                         label: 'Feeding',
-                        defaultNote: '120 ml paced bottle feed',
+                        defaultNote: '120 ml (4 oz) warm bottle feed',
                       },
                       {
                         id: 'diaper',
                         label: 'Diaper',
-                        defaultNote: 'Wet diaper changed · Barrier cream',
+                        defaultNote: 'Wet diaper changed · Diaper cream',
                       },
                       {
                         id: 'sleep',
-                        label: 'Sleep',
-                        defaultNote: 'Swaddled in bassinet · Brown noise',
+                        label: 'Sleep / Nap',
+                        defaultNote: 'Asleep in crib · White noise on',
                       },
                     ] as const
                   ).map((t) => (
@@ -1418,7 +1481,7 @@ export default function HomePage() {
                         setQuickLogType(t.id);
                         setQuickLogNote(t.defaultNote);
                       }}
-                      className={`min-h-[42px] px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                      className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
                         quickLogType === t.id
                           ? 'bg-[var(--accent-primary)] text-stone-950 border-amber-400'
                           : 'bg-[var(--bg-canvas)] text-[var(--text-primary)] border-[var(--border-subtle)]'
@@ -1434,7 +1497,7 @@ export default function HomePage() {
                     htmlFor="care-note"
                     className="text-xs font-medium text-[var(--text-primary)]"
                   >
-                    Notes / Amount
+                    Quick Note (Optional)
                   </label>
                   <input
                     id="care-note"
@@ -1447,9 +1510,9 @@ export default function HomePage() {
 
                 <button
                   type="submit"
-                  className="min-h-[44px] w-full py-2.5 rounded-xl bg-[var(--accent-primary)] hover:opacity-95 text-stone-950 text-xs font-semibold transition-opacity"
+                  className="min-h-[46px] w-full py-2.5 rounded-xl bg-[var(--accent-primary)] hover:opacity-95 text-stone-950 text-xs font-bold transition-opacity"
                 >
-                  Save to Nursery Log
+                  Save to Family Care Log
                 </button>
               </form>
             </motion.div>
@@ -1459,11 +1522,11 @@ export default function HomePage() {
 
       {/* Quiet Footer */}
       <footer className="mt-auto border-t border-[var(--border-subtle)] py-6 px-6 text-center text-xs text-[var(--text-secondary)]">
-        <span>Kora (Nocturne Cry)</span>
+        <span>Kora Baby Care</span>
         <span aria-hidden="true" className="mx-2">
           ·
         </span>
-        <span>3D WebGL Infant Cry Studio & Local Ollama PWA</span>
+        <span>Designed for Parents, Grandparents & Babysitters</span>
         <span aria-hidden="true" className="mx-2">
           ·
         </span>
@@ -1471,12 +1534,8 @@ export default function HomePage() {
           href="/llm.txt"
           className="hover:text-[var(--text-primary)] underline underline-offset-4"
         >
-          llm.txt
+          AI Info (llm.txt)
         </a>
-        <span aria-hidden="true" className="mx-2">
-          ·
-        </span>
-        <span>github.com/thembaxx/baby</span>
       </footer>
     </div>
   );
