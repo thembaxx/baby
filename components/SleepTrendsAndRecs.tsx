@@ -12,7 +12,7 @@ import {
   Thermometer,
   Calendar,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
 export interface DailySleepRecord {
@@ -472,109 +472,137 @@ export function SleepTrendsAndRecs({
           {/* Interactive Stacked Bar & Trend Chart */}
           <div className="relative pt-4 pb-2">
             {/* Reference Pediatric Target Guideline Line (14.5h) */}
-            {chartMode === 'stacked' && (
-              <div
-                className="absolute left-0 right-0 border-t border-dashed border-emerald-400/35 pointer-events-none flex items-center justify-end pr-2"
-                style={{
-                  bottom: `${Math.round((14.5 / maxChartHours) * 180) + 28}px`,
-                }}
-              >
-                <span className="text-[10px] font-mono tabular-nums text-emerald-400 bg-[var(--bg-surface)] px-1.5 -mt-2.5">
-                  Pediatric Target 14.5h
-                </span>
-              </div>
-            )}
+            <AnimatePresence>
+              {chartMode === 'stacked' && (
+                <motion.div
+                  key="pediatric-target-line"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute left-0 right-0 border-t border-dashed border-emerald-400/35 pointer-events-none flex items-center justify-end pr-2"
+                  style={{
+                    bottom: `${Math.round((14.5 / maxChartHours) * 180) + 28}px`,
+                  }}
+                >
+                  <span className="text-[10px] font-mono tabular-nums text-emerald-400 bg-[var(--bg-surface)] px-1.5 -mt-2.5">
+                    Pediatric Target 14.5h
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="h-[196px] flex items-end justify-between gap-2 sm:gap-3 pt-4">
-              {visibleData.map((day, idx) => {
-                const globalIndex =
-                  sleepRecords.length - visibleData.length + idx;
-                const isSelected = globalIndex === selectedIdx;
-                const totalHours = Number(
-                  (day.nightHours + day.napHours).toFixed(1)
-                );
+              <AnimatePresence initial={false} mode="popLayout">
+                {visibleData.map((day, idx) => {
+                  const globalIndex =
+                    sleepRecords.length - visibleData.length + idx;
+                  const isSelected = globalIndex === selectedIdx;
+                  const totalHours = Number(
+                    (day.nightHours + day.napHours).toFixed(1)
+                  );
 
-                const nightHeightPct =
-                  chartMode === 'stacked'
-                    ? (day.nightHours / maxChartHours) * 100
-                    : (day.longestStretchHours / 8) * 100;
-                const napHeightPct =
-                  chartMode === 'stacked'
-                    ? (day.napHours / maxChartHours) * 100
-                    : 0;
+                  const nightHeightPct =
+                    chartMode === 'stacked'
+                      ? (day.nightHours / maxChartHours) * 100
+                      : (day.longestStretchHours / 8) * 100;
+                  const napHeightPct =
+                    chartMode === 'stacked'
+                      ? (day.napHours / maxChartHours) * 100
+                      : 0;
 
-                return (
-                  <button
-                    key={day.dateStr}
-                    type="button"
-                    onClick={() => setSelectedIdx(globalIndex)}
-                    className="group flex-1 h-full flex flex-col items-center justify-end gap-2 focus:outline-none"
-                    aria-label={`${day.dayLabel} ${day.dateStr}: ${totalHours} hours total sleep`}
-                  >
-                    <span
-                      className={`text-[10px] font-mono tabular-nums transition-colors ${
-                        isSelected
-                          ? 'text-[var(--accent-primary)] font-bold'
-                          : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
-                      }`}
+                  return (
+                    <motion.button
+                      layout
+                      key={day.dateStr}
+                      type="button"
+                      initial={{ opacity: 0, y: 18, scale: 0.92 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 16, scale: 0.88 }}
+                      transition={{
+                        duration: 0.24,
+                        delay: idx * 0.02,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
+                      onClick={() => setSelectedIdx(globalIndex)}
+                      className="group flex-1 h-full flex flex-col items-center justify-end gap-2 focus:outline-none"
+                      aria-label={`${day.dayLabel} ${day.dateStr}: ${totalHours} hours total sleep`}
                     >
-                      {chartMode === 'stacked'
-                        ? `${totalHours}h`
-                        : `${day.longestStretchHours}h`}
-                    </span>
-
-                    <div
-                      className={`w-full max-w-[38px] h-[145px] rounded-xl p-0.5 flex flex-col justify-end overflow-hidden transition-all ${
-                        isSelected
-                          ? 'ring-2 ring-amber-400/70 bg-white/[0.06]'
-                          : 'bg-white/[0.02] group-hover:bg-white/[0.05]'
-                      }`}
-                    >
-                      {chartMode === 'stacked' && (
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${napHeightPct}%` }}
-                          transition={{
-                            duration: 0.3,
-                            ease: [0.16, 1, 0.3, 1],
-                          }}
-                          className="w-full rounded-t-lg bg-amber-400/85 mb-0.5"
-                          title={`Daytime naps: ${day.napHours}h`}
-                        />
-                      )}
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: `${nightHeightPct}%` }}
-                        transition={{
-                          duration: 0.35,
-                          ease: [0.16, 1, 0.3, 1],
-                        }}
-                        className={`w-full ${
-                          chartMode === 'stacked'
-                            ? 'rounded-b-lg bg-sky-500/85'
-                            : 'rounded-lg bg-amber-400'
-                        }`}
-                        title={`Night sleep: ${day.nightHours}h`}
-                      />
-                    </div>
-
-                    <div className="flex flex-col items-center">
-                      <span
-                        className={`text-[11px] font-medium ${
+                      <motion.span
+                        key={`${chartMode}-${totalHours}-${day.longestStretchHours}`}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.18 }}
+                        className={`text-[10px] font-mono tabular-nums transition-colors ${
                           isSelected
-                            ? 'text-[var(--text-primary)] font-bold'
-                            : 'text-[var(--text-secondary)]'
+                            ? 'text-[var(--accent-primary)] font-bold'
+                            : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
                         }`}
                       >
-                        {day.dayLabel}
-                      </span>
-                      <span className="text-[10px] font-mono tabular-nums text-[var(--text-secondary)] hidden sm:inline">
-                        {day.dateStr.replace('Oct ', '10/')}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                        {chartMode === 'stacked'
+                          ? `${totalHours}h`
+                          : `${day.longestStretchHours}h`}
+                      </motion.span>
+
+                      <div
+                        className={`w-full max-w-[38px] h-[145px] rounded-xl p-0.5 flex flex-col justify-end overflow-hidden transition-all ${
+                          isSelected
+                            ? 'ring-2 ring-amber-400/70 bg-white/[0.06]'
+                            : 'bg-white/[0.02] group-hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        <AnimatePresence initial={false}>
+                          {chartMode === 'stacked' && (
+                            <motion.div
+                              key="nap-bar"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: `${napHeightPct}%`, opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{
+                                duration: 0.28,
+                                ease: [0.16, 1, 0.3, 1],
+                              }}
+                              className="w-full rounded-t-lg bg-amber-400/85 mb-0.5"
+                              title={`Daytime naps: ${day.napHours}h`}
+                            />
+                          )}
+                        </AnimatePresence>
+                        <motion.div
+                          layout
+                          initial={{ height: 0 }}
+                          animate={{ height: `${nightHeightPct}%` }}
+                          transition={{
+                            duration: 0.34,
+                            ease: [0.16, 1, 0.3, 1],
+                          }}
+                          className={`w-full ${
+                            chartMode === 'stacked'
+                              ? 'rounded-b-lg bg-sky-500/85'
+                              : 'rounded-lg bg-amber-400'
+                          }`}
+                          title={`Night sleep: ${day.nightHours}h`}
+                        />
+                      </div>
+
+                      <div className="flex flex-col items-center">
+                        <span
+                          className={`text-[11px] font-medium ${
+                            isSelected
+                              ? 'text-[var(--text-primary)] font-bold'
+                              : 'text-[var(--text-secondary)]'
+                          }`}
+                        >
+                          {day.dayLabel}
+                        </span>
+                        <span className="text-[10px] font-mono tabular-nums text-[var(--text-secondary)] hidden sm:inline">
+                          {day.dateStr.replace('Oct ', '10/')}
+                        </span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
             </div>
 
             {/* Chart Legend & Quick Log Sleep Triggers */}
@@ -611,55 +639,64 @@ export function SleepTrendsAndRecs({
             </div>
           </div>
 
-          {/* Selected Day Detailed Telemetry Inspector */}
-          {selectedDay && (
-            <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                  <Calendar className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                  <span className="font-semibold text-[var(--text-primary)]">
-                    {selectedDay.dayLabel}, {selectedDay.dateStr} Breakdown
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>Dominant Cry: {selectedDay.dominantCry}</span>
+          {/* Selected Day Detailed Telemetry Inspector with Entry/Exit Animation */}
+          <AnimatePresence mode="wait">
+            {selectedDay && (
+              <motion.div
+                key={selectedDay.dateStr}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                    <Calendar className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                    <span className="font-semibold text-[var(--text-primary)]">
+                      {selectedDay.dayLabel}, {selectedDay.dateStr} Breakdown
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>Dominant Cry: {selectedDay.dominantCry}</span>
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)] flex flex-wrap items-center gap-x-3 gap-y-1 font-mono tabular-nums">
+                    <span>
+                      Total:{' '}
+                      <strong className="text-[var(--text-primary)]">
+                        {(selectedDay.nightHours + selectedDay.napHours).toFixed(
+                          1
+                        )}
+                        h
+                      </strong>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Night:{' '}
+                      <strong className="text-sky-400">
+                        {selectedDay.nightHours}h
+                      </strong>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Day Naps:{' '}
+                      <strong className="text-amber-400">
+                        {selectedDay.napHours}h
+                      </strong>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Longest Stretch:{' '}
+                      <strong className="text-emerald-400">
+                        {selectedDay.longestStretchHours}h
+                      </strong>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>Wakings: {selectedDay.wakings}</span>
+                  </div>
                 </div>
-                <div className="text-xs text-[var(--text-secondary)] flex flex-wrap items-center gap-x-3 gap-y-1 font-mono tabular-nums">
-                  <span>
-                    Total:{' '}
-                    <strong className="text-[var(--text-primary)]">
-                      {(selectedDay.nightHours + selectedDay.napHours).toFixed(
-                        1
-                      )}
-                      h
-                    </strong>
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    Night:{' '}
-                    <strong className="text-sky-400">
-                      {selectedDay.nightHours}h
-                    </strong>
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    Day Naps:{' '}
-                    <strong className="text-amber-400">
-                      {selectedDay.napHours}h
-                    </strong>
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    Longest Stretch:{' '}
-                    <strong className="text-emerald-400">
-                      {selectedDay.longestStretchHours}h
-                    </strong>
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>Wakings: {selectedDay.wakings}</span>
-                </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Right 5 Columns: Smart Nursery & Pediatric Recommendations */}
@@ -682,55 +719,68 @@ export function SleepTrendsAndRecs({
           </div>
 
           <div className="flex flex-col gap-3">
-            {recommendations.map((rec) => {
-              const isDone = Boolean(completedRecs[rec.id]);
-              return (
-                <div
-                  key={rec.id}
-                  className={`p-4 rounded-2xl border transition-colors flex flex-col gap-2.5 ${
-                    isDone
-                      ? 'bg-emerald-950/20 border-emerald-500/30'
-                      : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
-                    <span className="font-medium text-[var(--accent-primary)]">
-                      {rec.category}
-                    </span>
-                    <span className="font-mono tabular-nums">{rec.timing}</span>
-                  </div>
+            <AnimatePresence initial={false} mode="popLayout">
+              {recommendations.map((rec, idx) => {
+                const isDone = Boolean(completedRecs[rec.id]);
+                return (
+                  <motion.div
+                    layout
+                    key={rec.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{
+                      duration: 0.22,
+                      delay: idx * 0.03,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
+                    className={`p-4 rounded-2xl border transition-colors flex flex-col gap-2.5 ${
+                      isDone
+                        ? 'bg-emerald-950/20 border-emerald-500/30'
+                        : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
+                      <span className="font-medium text-[var(--accent-primary)]">
+                        {rec.category}
+                      </span>
+                      <span className="font-mono tabular-nums">
+                        {rec.timing}
+                      </span>
+                    </div>
 
-                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">
-                    {rec.title}
-                  </h4>
+                    <h4 className="text-sm font-semibold text-[var(--text-primary)]">
+                      {rec.title}
+                    </h4>
 
-                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                    {rec.description}
-                  </p>
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                      {rec.description}
+                    </p>
 
-                  <div className="pt-1 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={rec.onAction}
-                      className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${
-                        isDone
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
-                      }`}
-                    >
-                      <CheckCircle2
-                        className={`w-3.5 h-3.5 ${
+                    <div className="pt-1 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={rec.onAction}
+                        className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${
                           isDone
-                            ? 'text-emerald-400'
-                            : 'text-[var(--accent-primary)]'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
                         }`}
-                      />
-                      <span>{isDone ? 'Applied' : rec.actionLabel}</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      >
+                        <CheckCircle2
+                          className={`w-3.5 h-3.5 ${
+                            isDone
+                              ? 'text-emerald-400'
+                              : 'text-[var(--accent-primary)]'
+                          }`}
+                        />
+                        <span>{isDone ? 'Applied' : rec.actionLabel}</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </div>
       </div>

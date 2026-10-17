@@ -1413,111 +1413,143 @@ export default function HomePage() {
                     { id: 'feed', label: 'Feedings' },
                     { id: 'diaper', label: 'Diapers' },
                   ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setLogFilter(tab.id)}
-                    className={`flex-1 min-h-[38px] px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
-                      logFilter === tab.id
-                        ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                ).map((tab) => {
+                  const active = logFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setLogFilter(tab.id)}
+                      className={`relative flex-1 min-h-[38px] px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                        active
+                          ? 'text-[var(--text-primary)]'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="careLogActiveFilter"
+                          transition={{
+                            type: 'spring',
+                            stiffness: 420,
+                            damping: 32,
+                          }}
+                          className="absolute inset-0 rounded-lg bg-[var(--bg-elevated)] shadow-sm"
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Log Items List */}
-              <div className="flex flex-col divide-y divide-[var(--border-subtle)]">
-                {filteredLogs.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[var(--text-secondary)]">
-                    No events logged in this category yet.
-                  </div>
-                ) : (
-                  filteredLogs.slice(0, 7).map((item) => (
-                    <div
-                      key={item.id}
-                      className="py-3.5 first:pt-1 last:pb-1 flex items-start justify-between gap-3"
+              {/* Log Items List with Framer Motion Entry & Exit Animations */}
+              <div className="flex flex-col divide-y divide-[var(--border-subtle)] overflow-hidden">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {filteredLogs.length === 0 ? (
+                    <motion.div
+                      key="empty-care-logs"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      className="py-8 text-center text-xs text-[var(--text-secondary)]"
                     >
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="font-bold text-[var(--text-primary)] truncate">
-                            {item.title}
-                          </span>
-                          <span
-                            aria-hidden="true"
-                            className="text-[var(--text-secondary)]"
-                          >
-                            ·
-                          </span>
-                          <span className="font-mono tabular-nums text-[var(--text-secondary)] shrink-0">
-                            {item.timestamp}
-                          </span>
+                      No events logged in this category yet.
+                    </motion.div>
+                  ) : (
+                    filteredLogs.slice(0, 7).map((item) => (
+                      <motion.div
+                        layout
+                        key={item.id}
+                        initial={{ opacity: 0, y: -12, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -24, scale: 0.95 }}
+                        transition={{
+                          duration: 0.22,
+                          ease: [0.16, 1, 0.3, 1],
+                        }}
+                        className="py-3.5 first:pt-1 last:pb-1 flex items-start justify-between gap-3"
+                      >
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="font-bold text-[var(--text-primary)] truncate">
+                              {item.title}
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="text-[var(--text-secondary)]"
+                            >
+                              ·
+                            </span>
+                            <span className="font-mono tabular-nums text-[var(--text-secondary)] shrink-0">
+                              {item.timestamp}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                            {item.detail}
+                          </p>
                         </div>
-                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                          {item.detail}
-                        </p>
-                      </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            triggerNurseryHaptic(
-                              item.type === 'cry'
-                                ? 'cry-detected'
-                                : 'care-logged',
-                              {
-                                intensity:
-                                  hapticIntensity === 'off'
-                                    ? 'standard'
-                                    : hapticIntensity,
-                                categoryHint: item.title,
-                                customLabel: `Replaying Haptic Alert: ${item.title}`,
-                                onVisualPulse: showHapticPulseBanner,
-                              }
-                            )
-                          }
-                          title="Feel haptic vibration pattern for this log alert"
-                          aria-label="Replay haptic alert vibration"
-                          className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--bg-canvas)] transition-colors"
-                        >
-                          <Vibrate className="w-4 h-4" />
-                        </button>
-                        {item.type === 'cry' && (
+                        <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"
-                            onClick={() => {
-                              triggerNurseryHaptic('care-logged', {
-                                intensity: hapticIntensity,
-                                customLabel: 'Baby Marked Calm — Haptic Confirmed',
-                                onVisualPulse: showHapticPulseBanner,
-                              });
-                              toggleLogResolved(item.id);
-                            }}
-                            className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
-                              item.resolved
-                                ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-[var(--bg-canvas)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]'
-                            }`}
+                            onClick={() =>
+                              triggerNurseryHaptic(
+                                item.type === 'cry'
+                                  ? 'cry-detected'
+                                  : 'care-logged',
+                                {
+                                  intensity:
+                                    hapticIntensity === 'off'
+                                      ? 'standard'
+                                      : hapticIntensity,
+                                  categoryHint: item.title,
+                                  customLabel: `Replaying Haptic Alert: ${item.title}`,
+                                  onVisualPulse: showHapticPulseBanner,
+                                }
+                              )
+                            }
+                            title="Feel haptic vibration pattern for this log alert"
+                            aria-label="Replay haptic alert vibration"
+                            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--bg-canvas)] transition-colors"
                           >
-                            {item.resolved ? 'Baby Calm ✓' : 'Mark Calm'}
+                            <Vibrate className="w-4 h-4" />
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => deleteLogItem(item.id)}
-                          aria-label="Delete log entry"
-                          className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-rose-400 hover:bg-[var(--bg-canvas)] transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
+                          {item.type === 'cry' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerNurseryHaptic('care-logged', {
+                                  intensity: hapticIntensity,
+                                  customLabel:
+                                    'Baby Marked Calm — Haptic Confirmed',
+                                  onVisualPulse: showHapticPulseBanner,
+                                });
+                                toggleLogResolved(item.id);
+                              }}
+                              className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+                                item.resolved
+                                  ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30'
+                                  : 'bg-[var(--bg-canvas)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                              }`}
+                            >
+                              {item.resolved ? 'Baby Calm ✓' : 'Mark Calm'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => deleteLogItem(item.id)}
+                            aria-label="Delete log entry"
+                            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-rose-400 hover:bg-[var(--bg-canvas)] transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
