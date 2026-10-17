@@ -1,11 +1,24 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Loader2, Play, Square, Upload, Volume2, VolumeX } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Mic,
+  Loader2,
+  Play,
+  Square,
+  Upload,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+import { motion } from 'motion/react';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
+
+export type CryPresetId = 'hunger' | 'gas' | 'overtired' | 'discomfort';
 
 interface CryRecorderProps {
   onClassificationResult: (res: CryAnalysisResult, audioUrl?: string) => void;
+  onRecordingStateChange?: (recording: boolean, analyzing: boolean, energy: number) => void;
+  externalPresetTrigger?: { preset: CryPresetId; ts: number } | null;
   careContext?: {
     minutesSinceLastFeed?: number;
     minutesSinceLastSleep?: number;
@@ -18,9 +31,7 @@ interface CryRecorderProps {
   };
 }
 
-function createSynthesizedCryWavBlob(
-  preset: 'hunger' | 'gas' | 'overtired' | 'discomfort'
-): Blob {
+export function createSynthesizedCryWavBlob(preset: CryPresetId): Blob {
   const sampleRate = 16000;
   const durationSeconds = 5;
   const numSamples = sampleRate * durationSeconds;
@@ -69,7 +80,11 @@ function createSynthesizedCryWavBlob(
     const envelope = Math.max(0, Math.sin(Math.PI * t * pulseRate));
     const vibrato = Math.sin(2 * Math.PI * 6 * t) * 18;
     const pitchDrift =
-      preset === 'overtired' ? -35 * (t % 1.4) : preset === 'gas' ? 45 * envelope : 0;
+      preset === 'overtired'
+        ? -35 * (t % 1.4)
+        : preset === 'gas'
+          ? 45 * envelope
+          : 0;
     const freq = baseFreq + vibrato + pitchDrift;
 
     const fundamental = Math.sin(2 * Math.PI * freq * t);
@@ -86,6 +101,8 @@ function createSynthesizedCryWavBlob(
 
 export function CryRecorder({
   onClassificationResult,
+  onRecordingStateChange,
+  externalPresetTrigger,
   careContext,
   ollamaConfig,
 }: CryRecorderProps) {
@@ -112,22 +129,120 @@ export function CryRecorder({
   useEffect(() => {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (countdownIntervalRef.current)
+        clearInterval(countdownIntervalRef.current);
       if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
     };
   }, []);
 
   const stopAllTimers = () => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (countdownIntervalRef.current)
+      clearInterval(countdownIntervalRef.current);
     if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
     setSpectrumBars(Array.from({ length: 24 }, () => 12));
   };
+
+  const analyzeAudioClip = useCallback(
+    async (
+      blob: Blob,
+      mimeType = 'audio/webm',
+      presetHint?: string,
+      audioUrl?: string
+    ) => {
+      setAnalyzing(true);
+      onRecordingStateChange?.(false, true, 0.45);
+      setErrorMessage(null);
+      try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Audio = (reader.result as string).split(',')[1];
+
+            const response = await fetch('/api/classify-cry', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                audioBase64: base64Audio,
+                mimeType,
+                presetHint,
+                careContext,
+                ollamaBaseUrl: ollamaConfig?.baseUrl,
+                ollamaModel: ollamaConfig?.model,
+                inferenceMode: ollamaConfig?.inferenceMode,
+              }),
+            });
+
+            const result = await response.json();
+            onClassificationResult(result, audioUrl);
+          } catch (innerErr) {
+            console.error('Cry analysis request failed:', innerErr);
+            setErrorMessage('Failed to classify audio sample.');
+          } finally {
+            setAnalyzing(false);
+            onRecordingStateChange?.(false, false, 0.15);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.error('Cry analysis error:', err);
+        setAnalyzing(false);
+        onRecordingStateChange?.(false, false, 0.15);
+      }
+    },
+    [careContext, ollamaConfig, onClassificationResult, onRecordingStateChange]
+  );
+
+  const handleRunReferenceCry = useCallback(
+    async (preset: CryPresetId) => {
+      if (isRecording || analyzing) return;
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(15);
+      }
+      setActivePreset(preset);
+      const wavBlob = createSynthesizedCryWavBlob(preset);
+      const url = URL.createObjectURL(wavBlob);
+      setLastAudioUrl(url);
+
+      setSpectrumBars(
+        Array.from({ length: 24 }, (_, idx) =>
+          Math.min(95, 25 + ((idx * 19) % 65))
+        )
+      );
+
+      if (!mutePreview) {
+        try {
+          const audio = new Audio(url);
+          audio.volume = 0.25;
+          audioPreviewRef.current = audio;
+          audio.play().catch(() => {});
+          setTimeout(() => {
+            audio.pause();
+          }, 1400);
+        } catch {
+          // Ignore audio playback errors
+        }
+      }
+
+      await analyzeAudioClip(wavBlob, 'audio/wav', preset, url);
+      setSpectrumBars(Array.from({ length: 24 }, () => 12));
+    },
+    [analyzeAudioClip, analyzing, isRecording, mutePreview]
+  );
+
+  useEffect(() => {
+    if (externalPresetTrigger?.preset) {
+      handleRunReferenceCry(externalPresetTrigger.preset);
+    }
+  }, [externalPresetTrigger, handleRunReferenceCry]);
 
   const startRecording = async () => {
     setErrorMessage(null);
     setActivePreset(null);
     audioChunksRef.current = [];
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([20, 40, 20]);
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -150,7 +265,6 @@ export function CryRecorder({
         : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
-      // Set up live frequency analyzer for tactile 3:00 AM visual confirmation
       const audioCtx = new AudioContext();
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
@@ -160,11 +274,15 @@ export function CryRecorder({
 
       const updateSpectrum = () => {
         analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
         const bars = Array.from({ length: 24 }, (_, idx) => {
           const val = dataArray[idx % dataArray.length] || 0;
+          sum += val;
           return Math.max(10, Math.min(100, Math.round((val / 255) * 100)));
         });
         setSpectrumBars(bars);
+        const avgEnergy = sum / (24 * 255);
+        onRecordingStateChange?.(true, false, avgEnergy);
         animFrameRef.current = requestAnimationFrame(updateSpectrum);
       };
       animFrameRef.current = requestAnimationFrame(updateSpectrum);
@@ -187,6 +305,7 @@ export function CryRecorder({
 
       mediaRecorder.start();
       setIsRecording(true);
+      onRecordingStateChange?.(true, false, 0.35);
       setSecondsLeft(5.0);
 
       const startedAt = Date.now();
@@ -196,7 +315,6 @@ export function CryRecorder({
         setSecondsLeft(Number(remaining.toFixed(1)));
       }, 100);
 
-      // Automatically stop and analyze after exactly 5 seconds
       stopTimeoutRef.current = setTimeout(() => {
         if (
           mediaRecorderRef.current &&
@@ -209,7 +327,7 @@ export function CryRecorder({
     } catch (err) {
       console.error('Microphone access error:', err);
       setErrorMessage(
-        'Microphone access was blocked or unavailable. Use one of the Reference Cry Acoustic Samples below to test the local inference pipeline.'
+        'Microphone access was blocked or unavailable. Tap any Reference Cry Acoustic Sample below (or click an orbiting 3D node above) to test the local inference pipeline.'
       );
     }
   };
@@ -222,84 +340,6 @@ export function CryRecorder({
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-  };
-
-  const analyzeAudioClip = async (
-    blob: Blob,
-    mimeType = 'audio/webm',
-    presetHint?: string,
-    audioUrl?: string
-  ) => {
-    setAnalyzing(true);
-    setErrorMessage(null);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64Audio = (reader.result as string).split(',')[1];
-
-          const response = await fetch('/api/classify-cry', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              audioBase64: base64Audio,
-              mimeType,
-              presetHint,
-              careContext,
-              ollamaBaseUrl: ollamaConfig?.baseUrl,
-              ollamaModel: ollamaConfig?.model,
-              inferenceMode: ollamaConfig?.inferenceMode,
-            }),
-          });
-
-          const result = await response.json();
-          onClassificationResult(result, audioUrl);
-        } catch (innerErr) {
-          console.error('Cry analysis request failed:', innerErr);
-          setErrorMessage('Failed to classify audio sample.');
-        } finally {
-          setAnalyzing(false);
-        }
-      };
-      reader.readAsDataURL(blob);
-    } catch (err) {
-      console.error('Cry analysis error:', err);
-      setAnalyzing(false);
-    }
-  };
-
-  const handleRunReferenceCry = async (
-    preset: 'hunger' | 'gas' | 'overtired' | 'discomfort'
-  ) => {
-    if (isRecording || analyzing) return;
-    setActivePreset(preset);
-    const wavBlob = createSynthesizedCryWavBlob(preset);
-    const url = URL.createObjectURL(wavBlob);
-    setLastAudioUrl(url);
-
-    // Animate waveform briefly while synthesizing & analyzing
-    setSpectrumBars(
-      Array.from({ length: 24 }, (_, idx) =>
-        Math.min(95, 25 + ((idx * 19) % 65))
-      )
-    );
-
-    if (!mutePreview) {
-      try {
-        const audio = new Audio(url);
-        audio.volume = 0.25;
-        audioPreviewRef.current = audio;
-        audio.play().catch(() => {});
-        setTimeout(() => {
-          audio.pause();
-        }, 1400);
-      } catch {
-        // Ignore audio playback errors
-      }
-    }
-
-    await analyzeAudioClip(wavBlob, 'audio/wav', preset, url);
-    setSpectrumBars(Array.from({ length: 24 }, () => 12));
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -326,15 +366,20 @@ export function CryRecorder({
   };
 
   return (
-    <div className="flex flex-col gap-5 p-6 rounded-3xl bg-white/[0.04] border border-white/[0.08]">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col gap-5 p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)]"
+    >
       {/* Top Status & Controls Row */}
       <div className="flex items-center justify-between gap-4">
-        <div className="text-xs text-stone-400">
+        <div className="text-xs text-[var(--text-secondary)]">
           <span>5.0s Acoustic Capture</span>
-          <span aria-hidden="true" className="mx-2 text-stone-600">
+          <span aria-hidden="true" className="mx-2 opacity-50">
             ·
           </span>
-          <span className="font-mono tabular-nums text-stone-300">
+          <span className="font-mono tabular-nums text-[var(--text-primary)]">
             {ollamaConfig?.model || 'qwen2-audio'}
           </span>
         </div>
@@ -343,13 +388,13 @@ export function CryRecorder({
           <button
             type="button"
             onClick={() => setMutePreview((prev) => !prev)}
-            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-white/[0.08] text-xs text-stone-300 flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
             title="Toggle reference audio preview sound"
           >
             {mutePreview ? (
-              <VolumeX className="w-3.5 h-3.5 text-stone-400" />
+              <VolumeX className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
             ) : (
-              <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+              <Volume2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             )}
             <span>{mutePreview ? 'Muted (3 AM Mode)' : 'Audio Preview On'}</span>
           </button>
@@ -365,49 +410,48 @@ export function CryRecorder({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isRecording || analyzing}
-            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-white/[0.08] text-xs text-stone-300 flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
+            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
           >
-            <Upload className="w-3.5 h-3.5 text-stone-400" />
+            <Upload className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
             <span>Upload Clip</span>
           </button>
         </div>
       </div>
 
       {/* Main 5-Second Mic Trigger + Waveform Visualizer */}
-      <div className="flex flex-col items-center justify-center py-4 gap-4">
-        <div className="relative flex items-center justify-center">
-          <button
-            type="button"
-            onClick={isRecording ? stopRecordingEarly : startRecording}
-            disabled={analyzing}
-            aria-label={isRecording ? 'Stop recording' : 'Tap to Decode Cry'}
-            className={`relative flex items-center justify-center w-24 h-24 rounded-full transition-all shadow-xl ${
-              isRecording
-                ? 'bg-rose-500 text-white ring-8 ring-rose-500/25 scale-105'
-                : analyzing
-                  ? 'bg-stone-800 text-amber-400 border border-amber-400/30'
-                  : 'bg-amber-400 hover:bg-amber-300 text-stone-950 active:scale-95'
-            }`}
-          >
-            {analyzing ? (
-              <Loader2 className="w-9 h-9 animate-spin" />
-            ) : isRecording ? (
-              <Square className="w-8 h-8 fill-current" />
-            ) : (
-              <Mic className="w-9 h-9" />
-            )}
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center py-3 gap-4">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.94 }}
+          onClick={isRecording ? stopRecordingEarly : startRecording}
+          disabled={analyzing}
+          aria-label={isRecording ? 'Stop recording' : 'Tap to Decode Cry'}
+          className={`relative flex items-center justify-center w-24 h-24 rounded-full transition-colors shadow-xl ${
+            isRecording
+              ? 'bg-rose-500 text-white ring-8 ring-rose-500/25'
+              : analyzing
+                ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] border border-amber-400/30'
+                : 'bg-[var(--accent-primary)] hover:opacity-95 text-stone-950'
+          }`}
+        >
+          {analyzing ? (
+            <Loader2 className="w-9 h-9 animate-spin" />
+          ) : isRecording ? (
+            <Square className="w-8 h-8 fill-current" />
+          ) : (
+            <Mic className="w-9 h-9" />
+          )}
+        </motion.button>
 
         <div className="flex flex-col items-center gap-1 text-center">
-          <span className="text-sm font-semibold text-stone-200">
+          <span className="text-sm font-semibold text-[var(--text-primary)]">
             {isRecording
               ? `Listening to 5s cry sample... (${secondsLeft.toFixed(1)}s)`
               : analyzing
                 ? 'Analyzing local audio...'
                 : 'Tap to Decode Cry'}
           </span>
-          <span className="text-xs text-stone-400">
+          <span className="text-xs text-[var(--text-secondary)]">
             {isRecording
               ? 'Hold phone 30–50 cm from infant. Tap early to analyze immediately.'
               : 'Captures a 5-second PCM/WebM clip and streams base64 to /api/classify-cry'}
@@ -426,8 +470,8 @@ export function CryRecorder({
                 isRecording
                   ? 'bg-rose-400'
                   : analyzing
-                    ? 'bg-amber-400/80'
-                    : 'bg-stone-700/70'
+                    ? 'bg-amber-400'
+                    : 'bg-stone-600/50'
               }`}
               style={{
                 height: `${Math.max(15, height)}%`,
@@ -440,9 +484,9 @@ export function CryRecorder({
           <button
             type="button"
             onClick={toggleReplaySample}
-            className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-white/[0.08] text-xs font-medium text-stone-300 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
+            className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
           >
-            <Play className="w-3.5 h-3.5 text-amber-400" />
+            <Play className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>
               {isPlayingSample
                 ? 'Stop Sample Playback'
@@ -459,10 +503,12 @@ export function CryRecorder({
       )}
 
       {/* Reference Cry Acoustic Synthesizer Bar for Instant Testing */}
-      <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-2.5">
-        <div className="flex items-center justify-between text-xs text-stone-400">
-          <span>Simulate 5s Reference Infant Cry (Synthesizes WAV & Calls API)</span>
-          <span className="font-mono tabular-nums text-stone-500">16 kHz PCM</span>
+      <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-2.5">
+        <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+          <span>
+            Simulate 5s Reference Infant Cry (Synthesizes WAV & Calls API)
+          </span>
+          <span className="font-mono tabular-nums">16 kHz PCM</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {(
@@ -480,20 +526,20 @@ export function CryRecorder({
               onClick={() => handleRunReferenceCry(item.id)}
               className={`min-h-[44px] px-3 py-2 rounded-xl border text-left transition-colors flex flex-col justify-between ${
                 activePreset === item.id
-                  ? 'bg-amber-400/15 border-amber-400/40 text-amber-200'
-                  : 'bg-stone-900/70 hover:bg-stone-900 border-white/[0.07] text-stone-300'
+                  ? 'bg-amber-400/15 border-amber-400/40 text-[var(--text-primary)]'
+                  : 'bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
               } disabled:opacity-50`}
             >
               <span className="text-xs font-medium whitespace-nowrap truncate">
                 {item.label}
               </span>
-              <span className="text-[11px] font-mono tabular-nums text-stone-400">
+              <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
                 {item.freq}
               </span>
             </button>
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

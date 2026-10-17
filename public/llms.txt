@@ -1,0 +1,10 @@
+# Kora (Nocturne Cry) — 3D Infant Cry Studio & Privacy-First Nursery Companion
+
+> Kora is a progressive web application (PWA) and real-time 3D acoustic analysis studio that decodes 5-second infant cry audio samples locally using Ollama (`qwen2-audio`) and the Vercel AI SDK (`ai`), with automatic server-side Gemini multimodal fallback, interactive Three.js / WebGL 3D resonance totems, bidirectional voice control, optional offline WebGPU/GGUF model downloads, and a zero-glare 3:00 AM nursery care tracker.
+
+See `/llm.txt` for full API specifications, Three.js / Blender / Unity 3D scene architecture, and local Ollama CLI instructions.
+- Main Application: `/`
+- Classification Endpoint: `/api/classify-cry`
+- Neural Nursery TTS Endpoint: `/api/tts`
+- Web App Manifest: `/manifest.webmanifest`
+- GitHub Repository: https://github.com/thembaxx/baby

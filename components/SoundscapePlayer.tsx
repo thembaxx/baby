@@ -65,6 +65,9 @@ export function SoundscapePlayer() {
     gainNodeRef.current = null;
     setIsPlaying(false);
     setRemainingSeconds(null);
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
   };
 
   useEffect(() => {
@@ -178,6 +181,23 @@ export function SoundscapePlayer() {
 
     setIsPlaying(true);
 
+    // Register Native Lock-Screen Media Session Metadata
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      const profile = SOUND_PROFILES.find((p) => p.id === mode);
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: profile?.title || 'Kora Nursery Soundscape',
+        artist: 'Kora Acoustic Studio',
+        album: '3:00 AM Soothing Frequencies',
+        artwork: [
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      });
+      navigator.mediaSession.playbackState = 'playing';
+      navigator.mediaSession.setActionHandler('pause', () => stopAudio());
+      navigator.mediaSession.setActionHandler('stop', () => stopAudio());
+    }
+
     if (timerMinutes) {
       setRemainingSeconds(timerMinutes * 60);
       countdownRef.current = setInterval(() => {
@@ -206,14 +226,14 @@ export function SoundscapePlayer() {
   };
 
   return (
-    <div className="p-6 rounded-3xl bg-white/[0.04] border border-white/[0.08] flex flex-col gap-5">
+    <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold text-stone-100">
+          <h3 className="text-base font-bold text-[var(--text-primary)]">
             Nocturnal Soothing Soundscape
           </h3>
-          <p className="text-xs text-stone-400 mt-0.5">
-            Zero-latency Web Audio acoustic generator for post-cry settling
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            Zero-latency Web Audio generator with native lock-screen controls
           </p>
         </div>
 
@@ -223,7 +243,7 @@ export function SoundscapePlayer() {
           className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 ${
             isPlaying
               ? 'bg-rose-500 hover:bg-rose-400 text-white'
-              : 'bg-amber-400 hover:bg-amber-300 text-stone-950'
+              : 'bg-[var(--accent-primary)] hover:opacity-95 text-stone-950'
           }`}
         >
           {isPlaying ? (
@@ -250,17 +270,17 @@ export function SoundscapePlayer() {
               onClick={() => handleSelectMode(profile.id)}
               className={`min-h-[60px] p-3.5 rounded-2xl border text-left transition-colors flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-amber-400/12 border-amber-400/40 text-stone-100'
-                  : 'bg-stone-900/60 hover:bg-stone-900 border-white/[0.06] text-stone-300'
+                  ? 'bg-amber-400/12 border-amber-400/40 text-[var(--text-primary)]'
+                  : 'bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold">{profile.title}</span>
-                <span className="text-[11px] font-mono tabular-nums text-stone-400">
+                <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
                   {profile.targetFreq}
                 </span>
               </div>
-              <p className="text-[11px] text-stone-400 mt-1 line-clamp-1">
+              <p className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-1">
                 {profile.subtitle}
               </p>
             </button>
@@ -269,26 +289,26 @@ export function SoundscapePlayer() {
       </div>
 
       {/* Volume & Auto-Fade Sleep Timer Controls */}
-      <div className="pt-3 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="pt-3 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1">
-          <Volume2 className="w-4 h-4 text-stone-400 shrink-0" />
+          <Volume2 className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
           <input
             type="range"
             min={0.05}
             max={0.9}
             step={0.05}
             value={volume}
-            onChange={(e) => setVolume( parseFloat(e.target.value) )}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
             aria-label="Soothing soundscape volume"
             className="w-full accent-amber-400 cursor-pointer"
           />
-          <span className="text-xs font-mono tabular-nums text-stone-300 w-10 text-right">
+          <span className="text-xs font-mono tabular-nums text-[var(--text-primary)] w-10 text-right">
             {Math.round(volume * 100)}%
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-stone-400 mr-1 shrink-0" />
+          <Clock className="w-3.5 h-3.5 text-[var(--text-secondary)] mr-1 shrink-0" />
           {[15, 30, 60, null].map((mins) => (
             <button
               key={mins === null ? 'inf' : mins}
@@ -301,15 +321,15 @@ export function SoundscapePlayer() {
               }}
               className={`min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 timerMinutes === mins
-                  ? 'bg-stone-800 text-amber-300 border border-amber-400/30'
-                  : 'text-stone-400 hover:text-stone-200'
+                  ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] border border-amber-400/30'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               {mins === null ? 'Continuous' : `${mins}m`}
             </button>
           ))}
           {isPlaying && remainingSeconds !== null && (
-            <span className="ml-2 text-xs font-mono tabular-nums text-amber-300">
+            <span className="ml-2 text-xs font-mono tabular-nums text-[var(--accent-primary)]">
               {formatTimer(remainingSeconds)}
             </span>
           )}

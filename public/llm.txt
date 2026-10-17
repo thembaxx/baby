@@ -1,0 +1,37 @@
+# Kora (Nocturne Cry) — 3D Infant Cry Studio & Privacy-First Nursery Companion
+
+> Kora is a progressive web application (PWA) and real-time 3D acoustic analysis studio that decodes 5-second infant cry audio samples locally using Ollama (`qwen2-audio`) and the Vercel AI SDK (`ai`), with automatic server-side Gemini multimodal fallback, interactive Three.js / WebGL 3D resonance totems, bidirectional voice control, optional offline WebGPU/GGUF model downloads, and a zero-glare 3:00 AM nursery care tracker.
+
+## Core Capabilities
+
+- **5-Second Infant Cry Classification (`/api/classify-cry`)**:
+  - Captures 5.0-second browser audio via `MediaRecorder` (`audio/webm;codecs=opus`, `audio/mp4`, or 16 kHz PCM WAV).
+  - Streams base64 audio to a local OpenAI-compatible Ollama instance (`http://localhost:11434/v1`, model `qwen2-audio`) via the Vercel AI SDK `generateObject` with strict Zod schema validation (`CryAnalysisSchema`).
+  - Automatically falls back to server-side `@google/genai` (`gemini-3.8-flash`) multimodal audio analysis or deterministic Dunstan pediatric acoustic profiles when local Ollama is offline.
+- **Interactive 3D WebGL / Three.js Acoustic Sculpture (`components/AcousticOrb3D.tsx`)**:
+  - Built with Three.js PBR (`MeshPhysicalMaterial`, `RoomEnvironment` PMREM reflections, `ACESFilmicToneMapping`, anisotropic brushed gold, clearcoat ceramic, and transmissive glass).
+  - 9-part composite procedural 3D assembly with interactive raycasting on orbiting cry-category nodes, smooth exponential damping (`THREE.MathUtils.damp`), exploded-view inspection slider, material finish switcher, and 1-click `.OBJ` mesh export for Blender and Unity pipelines.
+- **Hands-Free Voice Control & Neural TTS (`/api/tts`)**:
+  - Supports hands-free browser voice commands ("Decode cry", "Play brown noise", "Stop audio", "Log feeding", "Read soothing steps") for parents holding an infant.
+  - Speaks soothing instructions aloud using server-side `gemini-3.8-flash-lite-tts` (24 kHz mono WAV) with instant browser `speechSynthesis` fallback.
+- **Optional Offline LLM & Acoustic Weights Manager (`components/OfflineModelManager.tsx`)**:
+  - Allows parents to download and persist quantized local acoustic model weights into browser `IndexedDB` (`navigator.storage.persist()`) or export a custom `Modelfile` bundle for offline Ollama inference (`OLLAMA_KEEP_ALIVE=24h ollama serve`).
+- **Adaptive Multi-Theme System (`https://web.dev/learn/design/theming`)**:
+  - Supports 4 seamless themes (`3:00 AM Amber Red-Shift`, `Lunar Indigo Dark`, `Daylight Alabaster`, and `System Auto`) with synchronized `<meta name="theme-color">`, `color-scheme`, and overscroll background painting across iOS Safari, Android Chrome, and desktop.
+
+## API Endpoints
+
+- `POST /api/classify-cry`: Accepts `{ audioBase64, mimeType, ollamaBaseUrl, ollamaModel, inferenceMode, presetHint, careContext }` and returns `{ primaryCategory, confidenceScore, probabilityBreakdown: { hunger, gas, overtired, discomfort }, immediateSoothingAction, acousticSignature, soothingSteps, engineUsed, latencyMs }`.
+- `GET /api/classify-cry`: Health check that pings local Ollama (`/api/tags`) and reports online status and installed models.
+- `POST /api/tts`: Accepts `{ text, voiceName }` and returns `{ audioBase64, mimeType: 'audio/wav' }` generated via `gemini-3.8-flash-lite-tts`.
+
+## Pediatric Acoustic Taxonomy (Dunstan Reflex Reference)
+
+1. **Hunger ("Neh" — ~420 Hz)**: Nasalized rhythmic onset produced by the tongue-palate sucking reflex.
+2. **Gas / Colic ("Eairh" — ~610 Hz)**: High-tension abdominal resonance with constricted glottal pauses.
+3. **Sleep Regression / Overtired ("Owh" — ~340 Hz)**: Elongated descending pitch contour shaped by the yawn reflex.
+4. **Discomfort / Wet Diaper ("Heh" — ~480 Hz)**: Breathy staccato bursts triggered by thermal or tactile skin irritation.
+
+## Repository
+
+- GitHub: https://github.com/thembaxx/baby
