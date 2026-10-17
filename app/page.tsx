@@ -2003,24 +2003,54 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Quick Log Modal */}
+      {/* Quick Log Modal with Subtle Spring Entrance & Exit Animation */}
       <AnimatePresence>
         {showQuickLogModal && (
           <motion.div
+            key="quick-log-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            onClick={() => setShowQuickLogModal(false)}
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.96, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.96, opacity: 0 }}
-              transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+              key="quick-log-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="quick-log-modal-title"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.92, y: 18, opacity: 0 }}
+              animate={{
+                scale: 1,
+                y: 0,
+                opacity: 1,
+                transition: {
+                  type: 'spring',
+                  stiffness: 420,
+                  damping: 30,
+                  mass: 0.85,
+                },
+              }}
+              exit={{
+                scale: 0.94,
+                y: 12,
+                opacity: 0,
+                transition: {
+                  type: 'spring',
+                  stiffness: 460,
+                  damping: 34,
+                  mass: 0.8,
+                },
+              }}
               className="w-full max-w-md p-6 rounded-3xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex flex-col gap-5 shadow-2xl"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                <h3
+                  id="quick-log-modal-title"
+                  className="text-base font-bold text-[var(--text-primary)]"
+                >
                   Log Feeding, Diaper, or Nap
                 </h3>
                 <button
@@ -2055,23 +2085,37 @@ export default function HomePage() {
                         defaultNote: 'Asleep in crib · White noise on',
                       },
                     ] as const
-                  ).map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        setQuickLogType(t.id);
-                        setQuickLogNote(t.defaultNote);
-                      }}
-                      className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                        quickLogType === t.id
-                          ? 'bg-[var(--accent-primary)] text-stone-950 border-amber-400'
-                          : 'bg-[var(--bg-canvas)] text-[var(--text-primary)] border-[var(--border-subtle)]'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
+                  ).map((t) => {
+                    const isSelected = quickLogType === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setQuickLogType(t.id);
+                          setQuickLogNote(t.defaultNote);
+                        }}
+                        className={`relative min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border transition-colors overflow-hidden ${
+                          isSelected
+                            ? 'text-stone-950 border-amber-400'
+                            : 'bg-[var(--bg-canvas)] text-[var(--text-primary)] border-[var(--border-subtle)]'
+                        }`}
+                      >
+                        {isSelected && (
+                          <motion.span
+                            layoutId="quickLogTypeActivePill"
+                            transition={{
+                              type: 'spring',
+                              stiffness: 440,
+                              damping: 32,
+                            }}
+                            className="absolute inset-0 bg-[var(--accent-primary)]"
+                          />
+                        )}
+                        <span className="relative z-10">{t.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -2090,12 +2134,14 @@ export default function HomePage() {
                   />
                 </div>
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   type="submit"
                   className="min-h-[46px] w-full py-2.5 rounded-xl bg-[var(--accent-primary)] hover:opacity-95 text-stone-950 text-xs font-bold transition-opacity"
                 >
                   Save to Family Care Log
-                </button>
+                </motion.button>
               </form>
             </motion.div>
           </motion.div>
