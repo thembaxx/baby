@@ -18,6 +18,8 @@ import {
   Volume2,
   ChevronDown,
   ChevronUp,
+  Vibrate,
+  BellRing,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CryRecorder, type CryPresetId } from '@/components/CryRecorder';
@@ -32,6 +34,11 @@ import {
   CaregiverHandoffCard,
   type CaregiverRole,
 } from '@/components/CaregiverHandoffCard';
+import {
+  triggerNurseryHaptic,
+  type HapticIntensity,
+  type HapticEventPayload,
+} from '@/lib/haptics';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
 type ThemeSetting = 'nocturne' | 'lunar' | 'daylight' | 'system';
@@ -169,10 +176,17 @@ export default function HomePage() {
   );
   const [quickLogNote, setQuickLogNote] = useState('120 ml (4 oz) warm bottle feed');
 
-  // Soothing step 60s timer
+  // Soothing step 60s timer & Care Log Haptic Alert Timers
   const [soothingTimerSecs, setSoothingTimerSecs] = useState<number | null>(
     null
   );
+  const [hapticIntensity, setHapticIntensity] =
+    useState<HapticIntensity>('standard');
+  const [activeHapticToast, setActiveHapticToast] =
+    useState<HapticEventPayload | null>(null);
+  const [careReminderSecs, setCareReminderSecs] = useState<number | null>(null);
+  const [careReminderLabel, setCareReminderLabel] =
+    useState<string>('Burp & Tummy Check');
 
   // Ollama Configuration State
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState(
@@ -292,31 +306,118 @@ export default function HomePage() {
     checkOllamaConnection();
   }, [checkOllamaConnection]);
 
+  const showHapticPulseBanner = useCallback((payload: HapticEventPayload) => {
+    setActiveHapticToast(payload);
+  }, []);
+
+  useEffect(() => {
+    if (!activeHapticToast) return;
+    const t = setTimeout(() => {
+      setActiveHapticToast(null);
+    }, 4200);
+    return () => clearTimeout(t);
+  }, [activeHapticToast]);
+
+  // 1-Minute Soothing Timer with Haptic Vibration on Expiration
   useEffect(() => {
     if (soothingTimerSecs === null) return;
     if (soothingTimerSecs <= 0) {
       setSoothingTimerSecs(null);
+      triggerNurseryHaptic('timer-expired', {
+        intensity: hapticIntensity,
+        customLabel: '1-Minute Calming Timer Finished — Check if Baby Settled',
+        onVisualPulse: showHapticPulseBanner,
+      });
+      const nowTime = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      saveLogs([
+        {
+          id: `timer-${Date.now()}`,
+          type: 'sleep',
+          title: '1-Min Soothing Timer Completed',
+          detail: 'Haptic vibration alert triggered for caregiver check',
+          timestamp: nowTime,
+          minutesAgo: 0,
+        },
+        ...careLogs,
+      ]);
       return;
     }
     const timer = setTimeout(() => {
       setSoothingTimerSecs((prev) => (prev !== null ? prev - 1 : null));
     }, 1000);
     return () => clearTimeout(timer);
-  }, [soothingTimerSecs]);
+  }, [
+    soothingTimerSecs,
+    hapticIntensity,
+    showHapticPulseBanner,
+    saveLogs,
+    careLogs,
+  ]);
+
+  // Care Log Reminder Timer (e.g., 10s Demo / 15m Burp / 30m Nap Check) with Haptic Alert
+  useEffect(() => {
+    if (careReminderSecs === null) return;
+    if (careReminderSecs <= 0) {
+      setCareReminderSecs(null);
+      triggerNurseryHaptic('timer-expired', {
+        intensity: hapticIntensity,
+        customLabel: `Care Log Timer Expired: ${careReminderLabel}`,
+        onVisualPulse: showHapticPulseBanner,
+      });
+      const nowTime = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      saveLogs([
+        {
+          id: `reminder-${Date.now()}`,
+          type: 'feed',
+          title: `Timer Alert: ${careReminderLabel}`,
+          detail: 'Caregiver notified via tactile haptic vibration pattern',
+          timestamp: nowTime,
+          minutesAgo: 0,
+        },
+        ...careLogs,
+      ]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCareReminderSecs((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [
+    careReminderSecs,
+    careReminderLabel,
+    hapticIntensity,
+    showHapticPulseBanner,
+    saveLogs,
+    careLogs,
+  ]);
 
   const handleClassificationResult = useCallback(
     (result: CryAnalysisResult) => {
       setAnalysis(result);
       setCompletedSteps({});
 
+      const friendlyTitle =
+        FRIENDLY_CATEGORY_TITLE[result.primaryCategory] ||
+        result.primaryCategory;
+
+      // Trigger Cry Detected Haptic Vibration Pattern for Noisy Nursery Accessibility
+      triggerNurseryHaptic('cry-detected', {
+        intensity: hapticIntensity,
+        categoryHint: result.primaryCategory,
+        customLabel: `Cry Alert: ${friendlyTitle} (${result.confidenceScore}% Match)`,
+        onVisualPulse: showHapticPulseBanner,
+      });
+
       const nowTime = new Date().toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       });
-
-      const friendlyTitle =
-        FRIENDLY_CATEGORY_TITLE[result.primaryCategory] ||
-        result.primaryCategory;
 
       const newEntry: CareLogItem = {
         id: `cry-${Date.now()}`,
@@ -342,7 +443,7 @@ export default function HomePage() {
         return updated;
       });
     },
-    []
+    [hapticIntensity, showHapticPulseBanner]
   );
 
   const handleRecordingStateChange = useCallback(
@@ -378,15 +479,28 @@ export default function HomePage() {
     if (quickLogType === 'diaper') setMinsSinceDiaper(0);
     if (quickLogType === 'sleep') setMinsSinceSleep(0);
 
+    triggerNurseryHaptic('care-logged', {
+      intensity: hapticIntensity,
+      customLabel: `${titleMap[quickLogType]} — Saved to Family Care Log`,
+      onVisualPulse: showHapticPulseBanner,
+    });
+
     saveLogs([newItem, ...careLogs]);
     setShowQuickLogModal(false);
   };
 
   const handleQuickResetCounter = useCallback(
     (type: 'feed' | 'diaper' | 'sleep') => {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(15);
-      }
+      const labelMap = {
+        feed: 'Baby Fed Just Now — Haptic Confirmed',
+        diaper: 'Fresh Diaper Logged — Haptic Confirmed',
+        sleep: 'Baby Fell Asleep — Haptic Confirmed',
+      };
+      triggerNurseryHaptic('care-logged', {
+        intensity: hapticIntensity,
+        customLabel: labelMap[type],
+        onVisualPulse: showHapticPulseBanner,
+      });
       const nowTime = new Date().toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
@@ -433,7 +547,7 @@ export default function HomePage() {
         ]);
       }
     },
-    [careLogs, saveLogs]
+    [careLogs, hapticIntensity, saveLogs, showHapticPulseBanner]
   );
 
   // Speak soothing steps aloud for hands-free caregivers / grandparents
@@ -537,6 +651,38 @@ export default function HomePage() {
   return (
     <div className="min-h-dvh bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col transition-colors">
       <OfflineIndicator />
+
+      {/* Live Tactile Haptic Pulse Banner for Noisy Nursery Accessibility */}
+      <AnimatePresence>
+        {activeHapticToast && (
+          <motion.div
+            key={activeHapticToast.timestamp}
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.2 }}
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-5 right-5 z-50 max-w-sm p-4 rounded-2xl bg-[var(--bg-elevated)] border-2 border-amber-400/70 shadow-2xl flex items-center gap-3.5"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 animate-pulse">
+              <Vibrate className="w-5 h-5 text-[var(--accent-primary)]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-[var(--accent-primary)] flex items-center gap-1.5">
+                <span>Haptic Vibration Active</span>
+                <span aria-hidden="true">·</span>
+                <span className="font-mono text-[11px]">
+                  [{activeHapticToast.pattern.join('·')}ms]
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-[var(--text-primary)] mt-0.5 leading-snug">
+                {activeHapticToast.label}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Strict 3-Zone Top Bar Contract */}
       <header className="flex items-center justify-between gap-8 px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]/90 backdrop-blur-md sticky top-0 z-30">
@@ -923,12 +1069,15 @@ export default function HomePage() {
                         <button
                           key={idx}
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
+                            triggerNurseryHaptic('step-checked', {
+                              intensity: hapticIntensity,
+                            });
                             setCompletedSteps((prev) => ({
                               ...prev,
                               [idx]: !prev[idx],
-                            }))
-                          }
+                            }));
+                          }}
                           className={`min-h-[48px] px-4 py-3 rounded-xl border text-left text-xs sm:text-sm flex items-center gap-3 transition-colors ${
                             done
                               ? 'bg-emerald-950/30 border-emerald-500/30 text-[var(--text-secondary)] line-through'
@@ -1068,9 +1217,18 @@ export default function HomePage() {
 
           {/* Right 5 Columns: Calming Soundscape Player + Hands-Free Voice + Shared Family Care Log */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Step 3: Calming White Noise & Heartbeat Sounds (Placed at top of right column so caregivers can play soothing sounds immediately) */}
+            {/* Step 3: Calming White Noise & Heartbeat Sounds */}
             <div id="soundscape">
-              <SoundscapePlayer />
+              <SoundscapePlayer
+                onTimerExpired={() => {
+                  triggerNurseryHaptic('timer-expired', {
+                    intensity: hapticIntensity,
+                    customLabel:
+                      'Calming Soundscape Sleep Timer Finished — Haptic Alert',
+                    onVisualPulse: showHapticPulseBanner,
+                  });
+                }}
+              />
             </div>
 
             {/* Hands-Free Voice Reader & Voice Commands */}
@@ -1082,7 +1240,7 @@ export default function HomePage() {
               onQuickLog={handleQuickResetCounter}
             />
 
-            {/* Shared Family & Babysitter Care Log */}
+            {/* Shared Family & Babysitter Care Log with Tactile Haptic Alert System */}
             <div
               id="care-log"
               className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-4"
@@ -1093,7 +1251,7 @@ export default function HomePage() {
                     Shared Family & Babysitter Log
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Keep everyone on the same page about feeds, naps & diapers
+                    Includes vibration alerts for noisy rooms when cries or timers trigger
                   </p>
                 </div>
 
@@ -1105,6 +1263,111 @@ export default function HomePage() {
                   <Plus className="w-4 h-4 text-[var(--accent-primary)]" />
                   <span>Add Note</span>
                 </button>
+              </div>
+
+              {/* Tactile Haptic Feedback & Care Timer Alert System */}
+              <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Vibrate className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                    <span className="text-xs font-bold text-[var(--text-primary)]">
+                      Noisy Nursery Vibration Alerts
+                    </span>
+                  </div>
+
+                  {/* Haptic Intensity Selector */}
+                  <div
+                    className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)]"
+                    role="group"
+                    aria-label="Vibration alert strength"
+                  >
+                    {(
+                      [
+                        { id: 'off', label: 'Off' },
+                        { id: 'gentle', label: 'Gentle' },
+                        { id: 'standard', label: 'Standard' },
+                        { id: 'strong', label: 'Strong' },
+                      ] as const
+                    ).map((lvl) => (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => {
+                          setHapticIntensity(lvl.id);
+                          if (lvl.id !== 'off') {
+                            triggerNurseryHaptic('step-checked', {
+                              intensity: lvl.id,
+                              customLabel: `Vibration strength set to ${lvl.label}`,
+                              onVisualPulse: showHapticPulseBanner,
+                            });
+                          }
+                        }}
+                        className={`min-h-[30px] px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                          hapticIntensity === lvl.id
+                            ? 'bg-[var(--accent-primary)] text-stone-950'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {lvl.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Care Timer & Haptic Test Row */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (careReminderSecs !== null) {
+                        setCareReminderSecs(null);
+                      } else {
+                        setCareReminderLabel('10s Quick Haptic Demo');
+                        setCareReminderSecs(10);
+                      }
+                    }}
+                    className={`min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                      careReminderSecs !== null
+                        ? 'bg-amber-400/20 border-amber-400/50 text-[var(--accent-primary)]'
+                        : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <BellRing className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                    <span className="font-mono tabular-nums">
+                      {careReminderSecs !== null
+                        ? `Alert in ${careReminderSecs}s (Cancel)`
+                        : 'Start 10s Alert Timer'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCareReminderLabel('15-Min Burp & Tummy Check');
+                      setCareReminderSecs(15 * 60);
+                    }}
+                    className="min-h-[38px] px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)] transition-colors"
+                  >
+                    15m Burp Timer
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      triggerNurseryHaptic('cry-detected', {
+                        intensity:
+                          hapticIntensity === 'off' ? 'standard' : hapticIntensity,
+                        categoryHint: analysis.primaryCategory,
+                        customLabel: `Test Cry Alert: ${friendlyHeadline}`,
+                        onVisualPulse: showHapticPulseBanner,
+                      })
+                    }
+                    className="min-h-[38px] px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--accent-primary)] flex items-center gap-1.5 transition-colors ml-auto"
+                  >
+                    <Vibrate className="w-3.5 h-3.5" />
+                    <span>Test Vibration</span>
+                  </button>
+                </div>
               </div>
 
               {/* Interactive Segmented Filter Controls */}
@@ -1165,10 +1428,41 @@ export default function HomePage() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            triggerNurseryHaptic(
+                              item.type === 'cry'
+                                ? 'cry-detected'
+                                : 'care-logged',
+                              {
+                                intensity:
+                                  hapticIntensity === 'off'
+                                    ? 'standard'
+                                    : hapticIntensity,
+                                categoryHint: item.title,
+                                customLabel: `Replaying Haptic Alert: ${item.title}`,
+                                onVisualPulse: showHapticPulseBanner,
+                              }
+                            )
+                          }
+                          title="Feel haptic vibration pattern for this log alert"
+                          aria-label="Replay haptic alert vibration"
+                          className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--bg-canvas)] transition-colors"
+                        >
+                          <Vibrate className="w-4 h-4" />
+                        </button>
                         {item.type === 'cry' && (
                           <button
                             type="button"
-                            onClick={() => toggleLogResolved(item.id)}
+                            onClick={() => {
+                              triggerNurseryHaptic('care-logged', {
+                                intensity: hapticIntensity,
+                                customLabel: 'Baby Marked Calm — Haptic Confirmed',
+                                onVisualPulse: showHapticPulseBanner,
+                              });
+                              toggleLogResolved(item.id);
+                            }}
                             className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                               item.resolved
                                 ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30'

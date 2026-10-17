@@ -37,7 +37,11 @@ const SOUND_PROFILES: {
   },
 ];
 
-export function SoundscapePlayer() {
+export function SoundscapePlayer({
+  onTimerExpired,
+}: {
+  onTimerExpired?: () => void;
+} = {}) {
   const [activeMode, setActiveMode] = useState<SoundMode>('brown');
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.45);
@@ -204,6 +208,7 @@ export function SoundscapePlayer() {
         setRemainingSeconds((prev) => {
           if (prev === null || prev <= 1) {
             stopAudio();
+            onTimerExpired?.();
             return null;
           }
           return prev - 1;
