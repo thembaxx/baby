@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  HardDrive,
-  Download,
-  CheckCircle2,
-  Trash2,
-  FileCode,
-  ShieldCheck,
-  Loader2,
-} from 'lucide-react';
+import { HardDrive, DownloadSimple as Download, CheckCircle as CheckCircle2, Trash as Trash2, FileCode, ShieldCheck, SpinnerGap as Loader2 } from '@phosphor-icons/react';
 
 const IDB_NAME = 'kora_offline_models_v1';
 const STORE_NAME = 'model_weights';

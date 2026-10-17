@@ -2,14 +2,14 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Mic,
-  Loader2,
+  Microphone as Mic,
+  SpinnerGap as Loader2,
   Play,
   Square,
-  Upload,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
+  UploadSimple as Upload,
+  SpeakerHigh as Volume2,
+  SpeakerSlash as VolumeX,
+} from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
@@ -181,7 +181,9 @@ export function CryRecorder({
             onClassificationResult(result, audioUrl);
           } catch (innerErr) {
             console.error('Cry analysis request failed:', innerErr);
-            setErrorMessage('Could not analyze the sound right now. Please try again.');
+            setErrorMessage(
+              'Could not analyze the sound right now. Please try again.'
+            );
           } finally {
             setAnalyzing(false);
             onRecordingStateChange?.(false, false, 0.15);
@@ -234,11 +236,19 @@ export function CryRecorder({
     [analyzeAudioClip, analyzing, isRecording, mutePreview]
   );
 
+  const runExternalPresetRef = useRef(handleRunReferenceCry);
   useEffect(() => {
-    if (externalPresetTrigger?.preset) {
-      handleRunReferenceCry(externalPresetTrigger.preset);
-    }
-  }, [externalPresetTrigger, handleRunReferenceCry]);
+    runExternalPresetRef.current = handleRunReferenceCry;
+  }, [handleRunReferenceCry]);
+
+  useEffect(() => {
+    if (!externalPresetTrigger) return;
+    // Queue the command once; changing recorder state must not replay it.
+    const command = setTimeout(() => {
+      void runExternalPresetRef.current(externalPresetTrigger.preset);
+    }, 0);
+    return () => clearTimeout(command);
+  }, [externalPresetTrigger]);
 
   const startRecording = async () => {
     setErrorMessage(null);
@@ -380,14 +390,14 @@ export function CryRecorder({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-[var(--text-primary)]">
-            Step 1: Listen to Baby&apos;s Cry (5 Seconds)
+            Listen to baby’s cry
           </h3>
           <p className="text-xs text-[var(--text-secondary)]">
-            Private, on-device sound check that tells you what baby likely needs
+            A 5-second sound check to help you understand.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setMutePreview((prev) => !prev)}
@@ -399,7 +409,9 @@ export function CryRecorder({
             ) : (
               <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
             )}
-            <span>{mutePreview ? 'Quiet Mode (Muted)' : 'Sample Sound On'}</span>
+            <span>
+              {mutePreview ? 'Quiet Mode (Muted)' : 'Sample Sound On'}
+            </span>
           </button>
 
           <input
@@ -440,7 +452,7 @@ export function CryRecorder({
           {analyzing ? (
             <Loader2 className="w-10 h-10 animate-spin" />
           ) : isRecording ? (
-            <Square className="w-9 h-9 fill-current" />
+            <Square weight="fill" className="w-9 h-9" />
           ) : (
             <Mic className="w-10 h-10" />
           )}
@@ -452,12 +464,12 @@ export function CryRecorder({
               ? `Listening to baby... (${secondsLeft.toFixed(1)}s left)`
               : analyzing
                 ? 'Checking what baby needs...'
-                : 'Tap to Decode Baby’s Cry'}
+                : 'What is baby telling you?'}
           </span>
           <span className="text-xs text-[var(--text-secondary)] max-w-md">
             {isRecording
               ? 'Hold phone gently near baby. It will stop automatically after 5 seconds.'
-              : 'Just tap the big button once and hold your phone near the crib or bassinet.'}
+              : 'Tap once. Hold your phone near baby.'}
           </span>
         </div>
 
@@ -509,7 +521,8 @@ export function CryRecorder({
       <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-2.5">
         <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
           <span>
-            No baby crying right now? Tap a sample cry below to see how it works:
+            No baby crying right now? Tap a sample cry below to see how it
+            works:
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

@@ -1,7 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { HeartHandshake, Edit3, Check, Phone, Baby, Clock, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Handshake as HeartHandshake,
+  PencilSimple as Edit3,
+  Check,
+  Phone,
+  Baby,
+  Clock,
+  Sparkle as Sparkles,
+} from '@phosphor-icons/react';
+
+import { useClientReady } from '@/hooks/use-client-ready';
+import { readStoredValue } from '@/lib/storage';
 
 export type CaregiverRole = 'parent' | 'grandparent' | 'babysitter';
 
@@ -16,49 +27,38 @@ interface CaregiverProfile {
 const DEFAULT_PROFILE: CaregiverProfile = {
   babyName: 'Maya',
   ageLabel: '8 weeks old',
-  bottleInstructions: '120 ml (4 oz) warm breastmilk or formula · Burp halfway through',
+  bottleInstructions:
+    '120 ml (4 oz) warm breastmilk or formula · Burp halfway through',
   favoriteSoothing: 'Hold upright on left shoulder + play Womb Brown Noise',
   emergencyContact: 'Mom & Dad · (555) 234-8910',
 };
 
 interface CaregiverHandoffCardProps {
-  role: CaregiverRole;
-  onRoleChange: (role: CaregiverRole) => void;
-  largeText: boolean;
-  onToggleLargeText: () => void;
   minsSinceFeed: number;
   minsSinceSleep: number;
   minsSinceDiaper: number;
 }
 
 export function CaregiverHandoffCard({
-  role,
-  onRoleChange,
-  largeText,
-  onToggleLargeText,
   minsSinceFeed,
   minsSinceSleep,
   minsSinceDiaper,
 }: CaregiverHandoffCardProps) {
-  const [profile, setProfile] = useState<CaregiverProfile>(DEFAULT_PROFILE);
+  const clientReady = useClientReady();
+  const [storedProfile, setProfile] = useState<CaregiverProfile>(() =>
+    readStoredValue('kora_caregiver_profile_v1', DEFAULT_PROFILE)
+  );
+  const profile = clientReady ? storedProfile : DEFAULT_PROFILE;
   const [isEditing, setIsEditing] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('kora_caregiver_profile_v1');
-      if (saved) {
-        setProfile({ ...DEFAULT_PROFILE, ...JSON.parse(saved) });
-      }
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
     try {
-      localStorage.setItem('kora_caregiver_profile_v1', JSON.stringify(profile));
+      localStorage.setItem(
+        'kora_caregiver_profile_v1',
+        JSON.stringify(profile)
+      );
     } catch {
       // Ignore storage errors
     }
@@ -69,7 +69,7 @@ export function CaregiverHandoffCard({
 
   return (
     <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
-      {/* Top Row: Who is caring for baby + Large Text Accessibility Toggle */}
+      {/* Baby profile and family handoff context */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center shrink-0">
@@ -85,53 +85,6 @@ export function CaregiverHandoffCard({
               Caring for {profile.babyName} Right Now
             </h2>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Role Switcher: Parent | Grandparent | Babysitter */}
-          <div
-            className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]"
-            role="group"
-            aria-label="Select who is caring for the baby"
-          >
-            {(
-              [
-                { id: 'parent', label: 'Parent View' },
-                { id: 'grandparent', label: 'Grandparent View' },
-                { id: 'babysitter', label: 'Babysitter View' },
-              ] as const
-            ).map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => {
-                  onRoleChange(r.id);
-                  if (r.id === 'grandparent' && !largeText) {
-                    onToggleLargeText();
-                  }
-                }}
-                className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
-                  role === r.id
-                    ? 'bg-[var(--accent-primary)] text-stone-950'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onToggleLargeText}
-            className={`min-h-[40px] px-3.5 py-2 rounded-xl border text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              largeText
-                ? 'bg-amber-400/20 border-amber-400/50 text-[var(--accent-primary)]'
-                : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)] text-[var(--text-primary)]'
-            }`}
-          >
-            {largeText ? 'Large Text: ON' : 'Large Easy-Read Text'}
-          </button>
         </div>
       </div>
 

@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Pill,
   Clock,
   Bell,
-  BellRing,
-  CheckCircle2,
+  BellRinging as BellRing,
+  CheckCircle as CheckCircle2,
   Plus,
-  Trash2,
+  Trash as Trash2,
   Vibrate,
-  AlertTriangle,
-  RotateCcw,
+  Warning as AlertTriangle,
+  ArrowCounterClockwise as RotateCcw,
   ShieldCheck,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   triggerNurseryHaptic,
@@ -21,6 +21,9 @@ import {
   type HapticEventPayload,
 } from '@/lib/haptics';
 import type { CaregiverRole } from '@/components/CaregiverHandoffCard';
+
+import { useClientReady } from '@/hooks/use-client-ready';
+import { readStoredValue } from '@/lib/storage';
 
 export interface MedicationScheduleItem {
   id: string;
@@ -93,7 +96,8 @@ const INITIAL_MEDICATIONS: MedicationScheduleItem[] = [
     lastAdministeredBy: 'Grandparent',
     dosesGivenToday: 2,
     maxDailyDoses: 4,
-    instructions: 'Give upright with oral syringe; wait 20 mins after milk feed.',
+    instructions:
+      'Give upright with oral syringe; wait 20 mins after milk feed.',
     recurringReminderEnabled: true,
     nextReminderSeconds: 0,
     isDueAlertActive: true,
@@ -143,9 +147,11 @@ export function MedicationLogCard({
   onVisualPulse,
   onLogMedicationDose,
 }: MedicationLogCardProps) {
-  const [medications, setMedications] =
-    useState<MedicationScheduleItem[]>(INITIAL_MEDICATIONS);
-  const [hasMounted, setHasMounted] = useState(false);
+  const hasMounted = useClientReady();
+  const [storedMedications, setMedications] = useState<
+    MedicationScheduleItem[]
+  >(() => readStoredValue('nocturne_medications_v1', INITIAL_MEDICATIONS));
+  const medications = hasMounted ? storedMedications : INITIAL_MEDICATIONS;
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Add Medication Form State
@@ -157,93 +163,67 @@ export function MedicationLogCard({
     'Verify pediatrician weight chart; use calibrated oral syringe only.'
   );
 
-  // Hydrate saved medication schedules from localStorage
-  useEffect(() => {
-    setHasMounted(true);
-    try {
-      const saved = localStorage.getItem('nocturne_medications_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMedications(parsed);
-        }
-      }
-    } catch {
-      // Ignore storage access issues
-    }
-  }, []);
-
-  const saveMedications = (updated: MedicationScheduleItem[]) => {
+  const saveMedications = useCallback((updated: MedicationScheduleItem[]) => {
     setMedications(updated);
     try {
       localStorage.setItem('nocturne_medications_v1', JSON.stringify(updated));
     } catch {
       // Ignore storage errors
     }
-  };
+  }, []);
 
-  // Live 1-second recurring reminder countdown & automatic haptic alert engine
+  // Notifications run in the browser timer, outside React's state updater.
   useEffect(() => {
     if (!hasMounted) return;
+    const timer = setTimeout(() => {
+      let changed = false;
+      const nextList = medications.map((med) => {
+        if (!med.recurringReminderEnabled) return med;
 
-    const timer = setInterval(() => {
-      setMedications((prev) => {
-        let changed = false;
-        const nextList = prev.map((med) => {
-          if (!med.recurringReminderEnabled) return med;
+        // If countdown is running above 0, decrement by 1 second
+        if (med.nextReminderSeconds > 0) {
+          changed = true;
+          const nextSecs = med.nextReminderSeconds - 1;
 
-          // If countdown is running above 0, decrement by 1 second
-          if (med.nextReminderSeconds > 0) {
-            changed = true;
-            const nextSecs = med.nextReminderSeconds - 1;
+          // Increment minutesSinceLastDose every 60 seconds
+          const addMinute = nextSecs % 60 === 0 ? 1 : 0;
 
-            // Increment minutesSinceLastDose every 60 seconds
-            const addMinute = nextSecs % 60 === 0 ? 1 : 0;
-
-            if (nextSecs === 0) {
-              // Fire Recurring Medication Haptic Alert
-              triggerNurseryHaptic('medication-due', {
-                intensity:
-                  hapticIntensity === 'off' ? 'standard' : hapticIntensity,
-                customLabel: `Medication Due: ${med.name} (${med.dosage}) — Every ${med.frequencyHours}h`,
-                onVisualPulse,
-              });
-
-              return {
-                ...med,
-                nextReminderSeconds: 0,
-                minutesSinceLastDose: med.minutesSinceLastDose + addMinute,
-                isDueAlertActive: true,
-              };
-            }
+          if (nextSecs === 0) {
+            // Fire Recurring Medication Haptic Alert
+            triggerNurseryHaptic('medication-due', {
+              intensity: hapticIntensity,
+              customLabel: `Medication Due: ${med.name} (${med.dosage}) — Every ${med.frequencyHours}h`,
+              onVisualPulse,
+            });
 
             return {
               ...med,
-              nextReminderSeconds: nextSecs,
+              nextReminderSeconds: 0,
               minutesSinceLastDose: med.minutesSinceLastDose + addMinute,
+              isDueAlertActive: true,
             };
           }
 
-          return med;
-        });
-
-        if (changed) {
-          try {
-            localStorage.setItem(
-              'nocturne_medications_v1',
-              JSON.stringify(nextList)
-            );
-          } catch {
-            // Ignore storage errors
-          }
-          return nextList;
+          return {
+            ...med,
+            nextReminderSeconds: nextSecs,
+            minutesSinceLastDose: med.minutesSinceLastDose + addMinute,
+          };
         }
-        return prev;
-      });
-    }, 1000);
 
-    return () => clearInterval(timer);
-  }, [hasMounted, hapticIntensity, onVisualPulse]);
+        return med;
+      });
+
+      if (changed) saveMedications(nextList);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [
+    hasMounted,
+    medications,
+    hapticIntensity,
+    onVisualPulse,
+    saveMedications,
+  ]);
 
   const formatDurationFromMins = (mins: number) => {
     if (mins <= 0) return 'Just now';
@@ -467,7 +447,8 @@ export function MedicationLogCard({
               </span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Tracks exact dosage, frequency, last administered time, and recurring haptic reminders so caregivers never double-dose.
+              Tracks exact dosage, frequency, last administered time, and
+              recurring haptic reminders so caregivers never double-dose.
             </p>
           </div>
         </div>
@@ -664,7 +645,11 @@ export function MedicationLogCard({
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-semibold text-emerald-300">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>
-                          Wait {formatDurationFromMins(minsUntilSafe).replace(' ago', '')}
+                          Wait{' '}
+                          {formatDurationFromMins(minsUntilSafe).replace(
+                            ' ago',
+                            ''
+                          )}
                         </span>
                       </span>
                     )}
@@ -831,7 +816,8 @@ export function MedicationLogCard({
                       <strong className="text-[var(--text-primary)]">
                         {med.lastAdministeredBy}
                       </strong>{' '}
-                      at {med.lastAdministeredTime}. Next recurring reminder fires automatically.
+                      at {med.lastAdministeredTime}. Next recurring reminder
+                      fires automatically.
                     </span>
                   </div>
                 )}
