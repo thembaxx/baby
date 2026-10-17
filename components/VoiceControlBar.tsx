@@ -1,89 +1,38 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { SpeakerHigh as Volume2, Microphone as Mic, SpinnerGap as Loader2, Square } from '@phosphor-icons/react';
-import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
+import { SpeakerHigh as Volume2, Microphone as Mic, Square } from '@phosphor-icons/react';
 import type { CryPresetKey } from '@/components/AcousticOrb3D';
 
 interface VoiceControlBarProps {
-  analysis: CryAnalysisResult;
+  onReadAloud: () => void;
+  onPrepareSpeech: () => void;
+  speechStatus: 'idle' | 'preparing' | 'speaking';
+  speechError: string | null;
   onTriggerPresetCry: (preset: CryPresetKey) => void;
   onQuickLog: (type: 'feed' | 'diaper' | 'sleep') => void;
 }
 
 export function VoiceControlBar({
-  analysis,
+  onReadAloud,
+  onPrepareSpeech,
+  speechStatus,
+  speechError,
   onTriggerPresetCry,
   onQuickLog,
 }: VoiceControlBarProps) {
-  const [speaking, setSpeaking] = useState(false);
+  const speaking = speechStatus !== 'idle';
   const [listeningCmd, setListeningCmd] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
     };
   }, []);
-
-  const speakSoothingGuidance = async () => {
-    if (speaking) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      setSpeaking(false);
-      return;
-    }
-
-    const script = `Primary cry classification is ${analysis.primaryCategory} with ${analysis.confidenceScore} percent confidence. Immediate soothing action: ${analysis.immediateSoothingAction}`;
-    setSpeaking(true);
-
-    try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: script, voiceName: 'Kore' }),
-      });
-      const data = await res.json();
-
-      if (data.audioBase64) {
-        const audio = new Audio(`data:audio/wav;base64,${data.audioBase64}`);
-        audioRef.current = audio;
-        audio.onended = () => setSpeaking(false);
-        audio.onerror = () => setSpeaking(false);
-        await audio.play();
-        return;
-      }
-    } catch {
-      // Fall back to local browser speechSynthesis below
-    }
-
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(script);
-      utter.rate = 0.94;
-      utter.pitch = 0.95;
-      utter.onend = () => setSpeaking(false);
-      utter.onerror = () => setSpeaking(false);
-      window.speechSynthesis.speak(utter);
-    } else {
-      setSpeaking(false);
-    }
-  };
 
   const toggleHandsFreeVoiceCommand = () => {
     if (listeningCmd) {
@@ -146,7 +95,7 @@ export function VoiceControlBar({
       } else if (spoken.includes('feed')) {
         onQuickLog('feed');
       } else if (spoken.includes('read') || spoken.includes('sooth') || spoken.includes('speak')) {
-        speakSoothingGuidance();
+        onReadAloud();
       }
     };
 
@@ -158,6 +107,7 @@ export function VoiceControlBar({
     };
 
     recognitionRef.current = recognition;
+    onPrepareSpeech();
     setListeningCmd(true);
     setVoiceTranscript(
       'Listening... Say "Read soothing steps", "Simulate hunger", "Log feeding", or "Log diaper"'
@@ -172,7 +122,7 @@ export function VoiceControlBar({
           A little hands-free help
         </div>
         <div className="text-xs text-[var(--text-secondary)] truncate">
-          {voiceTranscript ||
+          {speechError || (speechStatus === 'preparing' ? 'Preparing speech on your device…' : null) || voiceTranscript ||
             'Speak commands while holding your baby or hear soothing instructions read aloud'}
         </div>
       </div>
@@ -193,7 +143,7 @@ export function VoiceControlBar({
 
         <button
           type="button"
-          onClick={speakSoothingGuidance}
+          onClick={onReadAloud}
           className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
             speaking
               ? 'bg-rose-500 text-white'
@@ -203,7 +153,7 @@ export function VoiceControlBar({
           {speaking ? (
             <>
               <Square weight="fill" className="w-3.5 h-3.5" />
-              <span>Stop Voice</span>
+              <span>{speechStatus === 'preparing' ? 'Cancel speech' : 'Stop Voice'}</span>
             </>
           ) : (
             <>

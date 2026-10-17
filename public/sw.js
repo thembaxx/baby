@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kora-nursery-pwa-v3';
+const CACHE_NAME = 'kora-nursery-pwa-v4';
 const PRECACHE_URLS = [
   '/',
   '/icon.svg',
@@ -24,7 +24,7 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys.map((key) => {
-            if (key !== CACHE_NAME) {
+            if (key.startsWith('kora-nursery-pwa-') && key !== CACHE_NAME) {
               return caches.delete(key);
             }
             return Promise.resolve();
@@ -39,6 +39,11 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/')) return;
+  // Optional voice files are managed separately, including explicit removal.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/voice-runtime/')) {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
