@@ -1,4 +1,22 @@
-# Kora (Nocturne Cry) — 3D Infant Cry Studio & Tactile Nursery Companion
+# Kora · Nocturne Cry
+
+An experimental infant-audio interface with recording, interactive 3D presentation and configurable model integrations.
+
+[Browse the source](https://github.com/thembaxx/baby)
+
+## Engineering highlights
+
+Browser audio capture, typed analysis schemas and local/server model paths. This is an experimental software project, not clinically validated diagnosis or infant-care advice.
+
+## Technology
+
+Declared in [package.json](package.json): Next.js `^15.4.9` · React `^19.2.1` · TypeScript `5.9.3` · Tailwind CSS `4.1.11` · Three.js `^0.186.1` · Motion `^12.23.24` · Google Gen AI SDK `^2.4.0` · Zod `^4.6.7`.
+
+**Quality tooling:** `lint` scripts are available. See the setup guide below for prerequisites; this documentation pass does not assert that those checks were run.
+
+---
+
+## Project guide
 
 Privacy-first 3D infant cry audio analyzer powered by local **Ollama (`qwen2-audio`)** and the **Vercel AI SDK (`ai`)**, with automatic server-side Gemini multimodal fallback, interactive **Three.js / WebGL** 3D acoustic resonance totems, hands-free voice control, neural TTS, optional in-browser **IndexedDB** offline model packs, and full **PWA** installability.
 
