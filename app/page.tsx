@@ -652,6 +652,84 @@ export default function HomePage() {
     logFilter === 'all' ? true : item.type === logFilter
   );
 
+  // Aggregate Daily Care Log Summary (Feedings, Diaper Changes, Total Sleep Duration & Cries)
+  const dailySummary = React.useMemo(() => {
+    let feedCount = 0;
+    let totalFeedMl = 0;
+    let diaperCount = 0;
+    let sleepCount = 0;
+    let totalSleepMinutes = 0;
+    let cryCount = 0;
+    let settledCryCount = 0;
+
+    for (const item of careLogs) {
+      const combinedText = `${item.title} ${item.detail}`;
+      if (item.type === 'feed') {
+        feedCount += 1;
+        const mlMatch = combinedText.match(/(\d+)\s*ml/i);
+        if (mlMatch) {
+          totalFeedMl += parseInt(mlMatch[1], 10);
+        } else {
+          totalFeedMl += 110;
+        }
+      } else if (item.type === 'diaper') {
+        diaperCount += 1;
+      } else if (item.type === 'sleep') {
+        sleepCount += 1;
+        // Parse e.g. "2h 55m", "+1.5h", or default to 45m nap
+        const hmMatch = combinedText.match(/(\d+)\s*h\s*(\d+)\s*m/i);
+        const decimalHourMatch = combinedText.match(/\+?(\d+(?:\.\d+)?)\s*h/i);
+        const minOnlyMatch = combinedText.match(/(\d+)\s*m(?:in)?/i);
+
+        if (hmMatch) {
+          totalSleepMinutes +=
+            parseInt(hmMatch[1], 10) * 60 + parseInt(hmMatch[2], 10);
+        } else if (decimalHourMatch) {
+          totalSleepMinutes += Math.round(
+            parseFloat(decimalHourMatch[1]) * 60
+          );
+        } else if (minOnlyMatch) {
+          totalSleepMinutes += parseInt(minOnlyMatch[1], 10);
+        } else {
+          totalSleepMinutes += 45;
+        }
+      } else if (item.type === 'cry') {
+        cryCount += 1;
+        if (item.resolved) settledCryCount += 1;
+      }
+    }
+
+    const sleepHours = Math.floor(totalSleepMinutes / 60);
+    const sleepRemainderMins = totalSleepMinutes % 60;
+    const formattedSleepDuration =
+      totalSleepMinutes === 0
+        ? '0m'
+        : sleepHours > 0
+          ? `${sleepHours}h ${sleepRemainderMins}m`
+          : `${sleepRemainderMins}m`;
+
+    const reportText = `Daily Care Report: ${feedCount} ${
+      feedCount === 1 ? 'feeding' : 'feedings'
+    } (~${totalFeedMl} ml), ${diaperCount} ${
+      diaperCount === 1 ? 'diaper change' : 'diaper changes'
+    }, and ${formattedSleepDuration} total sleep across ${sleepCount} ${
+      sleepCount === 1 ? 'stretch' : 'stretches'
+    }${
+      cryCount > 0 ? ` (${settledCryCount}/${cryCount} cries settled)` : ''
+    }.`;
+
+    return {
+      feedCount,
+      totalFeedMl,
+      diaperCount,
+      sleepCount,
+      formattedSleepDuration,
+      cryCount,
+      settledCryCount,
+      reportText,
+    };
+  }, [careLogs]);
+
   const friendlyHeadline =
     FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] ||
     analysis.primaryCategory;
@@ -1559,6 +1637,92 @@ export default function HomePage() {
                     ))
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* Concise Daily Care Summary Report at Bottom of Care Log */}
+              <div className="mt-2 pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent-primary)]">
+                      Daily Care Summary Report
+                    </h4>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      Live totals from today&apos;s logged feedings, diapers &amp; sleep
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      copyCommand(dailySummary.reportText, 'daily-report');
+                      triggerNurseryHaptic('step-checked', {
+                        intensity: hapticIntensity,
+                        customLabel: 'Daily Care Summary Copied to Clipboard',
+                        onVisualPulse: showHapticPulseBanner,
+                      });
+                    }}
+                    className="min-h-[34px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+                  >
+                    {copiedCmd === 'daily-report' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Report Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                        <span>Copy Daily Report</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* 3-Column Aggregated KPI Tiles: Feedings | Diaper Changes | Total Sleep Duration */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="p-3 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col">
+                    <span className="text-[11px] text-[var(--text-secondary)]">
+                      Feedings
+                    </span>
+                    <span className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
+                      {dailySummary.feedCount}
+                    </span>
+                    <span className="text-[11px] font-mono tabular-nums text-[var(--accent-primary)]">
+                      ~{dailySummary.totalFeedMl} ml total
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col">
+                    <span className="text-[11px] text-[var(--text-secondary)]">
+                      Diaper Changes
+                    </span>
+                    <span className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
+                      {dailySummary.diaperCount}
+                    </span>
+                    <span className="text-[11px] text-emerald-400">
+                      {dailySummary.diaperCount > 0
+                        ? 'Logged & checked'
+                        : 'None logged yet'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col">
+                    <span className="text-[11px] text-[var(--text-secondary)]">
+                      Total Sleep
+                    </span>
+                    <span className="text-lg font-bold font-mono tabular-nums text-sky-400 mt-0.5">
+                      {dailySummary.formattedSleepDuration}
+                    </span>
+                    <span className="text-[11px] text-[var(--text-secondary)]">
+                      {dailySummary.sleepCount}{' '}
+                      {dailySummary.sleepCount === 1 ? 'stretch' : 'stretches'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Plain-English Concise Daily Report Line */}
+                <div className="px-3.5 py-2.5 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] leading-relaxed">
+                  {dailySummary.reportText}
+                </div>
               </div>
             </div>
           </div>
