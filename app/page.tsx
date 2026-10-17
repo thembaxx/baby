@@ -20,6 +20,7 @@ import {
   ChevronUp,
   Vibrate,
   BellRing,
+  Eye,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CryRecorder, type CryPresetId } from '@/components/CryRecorder';
@@ -41,7 +42,7 @@ import {
 } from '@/lib/haptics';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
-type ThemeSetting = 'nocturne' | 'lunar' | 'daylight' | 'system';
+type ThemeSetting = 'nocturne' | 'redlight' | 'lunar' | 'daylight' | 'system';
 
 interface CareLogItem {
   id: string;
@@ -141,7 +142,7 @@ export default function HomePage() {
   // Theme & Brand Logo Craft State
   const [themeSetting, setThemeSetting] = useState<ThemeSetting>('nocturne');
   const [resolvedTheme, setResolvedTheme] = useState<
-    'nocturne' | 'lunar' | 'daylight'
+    'nocturne' | 'redlight' | 'lunar' | 'daylight'
   >('nocturne');
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('polyhedron');
 
@@ -219,7 +220,7 @@ export default function HomePage() {
   // Synchronize Theme with DOM & Browser Meta Theme-Color (web.dev/learn/design/theming)
   useEffect(() => {
     const applyTheme = (mode: ThemeSetting) => {
-      let actual: 'nocturne' | 'lunar' | 'daylight' = 'nocturne';
+      let actual: 'nocturne' | 'redlight' | 'lunar' | 'daylight' = 'nocturne';
       if (mode === 'system') {
         const prefersLight = window.matchMedia(
           '(prefers-color-scheme: light)'
@@ -237,7 +238,9 @@ export default function HomePage() {
           ? '#f5f2eb'
           : actual === 'lunar'
             ? '#090d16'
-            : '#0c0a09';
+            : actual === 'redlight'
+              ? '#070102'
+              : '#0c0a09';
       document.documentElement.style.backgroundColor = bgHex;
       document.body.style.backgroundColor = bgHex;
 
@@ -791,6 +794,7 @@ export default function HomePage() {
               >
                 {(
                   [
+                    { id: 'redlight', label: 'Red Light', icon: Eye },
                     { id: 'nocturne', label: 'Night Glow', icon: Moon },
                     { id: 'lunar', label: 'Soft Blue', icon: Sparkles },
                     { id: 'daylight', label: 'Bright Day', icon: Sun },
@@ -802,7 +806,17 @@ export default function HomePage() {
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => setThemeSetting(t.id)}
+                      onClick={() => {
+                        setThemeSetting(t.id);
+                        if (t.id === 'redlight') {
+                          triggerNurseryHaptic('step-checked', {
+                            intensity: hapticIntensity,
+                            customLabel:
+                              'High-Contrast Red Light Mode On — Baby Sleep Protected',
+                            onVisualPulse: showHapticPulseBanner,
+                          });
+                        }
+                      }}
                       className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                         active
                           ? 'bg-[var(--accent-primary)] text-stone-950 font-bold'
@@ -842,6 +856,26 @@ export default function HomePage() {
               <PWAInstallButton />
             </div>
           </div>
+
+          {resolvedTheme === 'redlight' && (
+            <div className="p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-xs font-semibold text-[var(--text-primary)]">
+                <Eye className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                <span>
+                  <strong>640nm High-Contrast Red Light Mode Active:</strong>{' '}
+                  Zero blue or green light emission — protects baby&apos;s sleep
+                  cycles and preserves your dark-room night vision.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setThemeSetting('nocturne')}
+                className="min-h-[32px] px-3 py-1 rounded-lg bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] whitespace-nowrap"
+              >
+                Switch to Standard Night Glow
+              </button>
+            </div>
+          )}
 
           {/* Family & Babysitter At-a-Glance Handoff Card + Large Text Switch */}
           <CaregiverHandoffCard

@@ -38,6 +38,45 @@
     --border-subtle: rgba(28, 25, 23, 0.1);
   }
 
+  /* High-Contrast 640nm Red Light Mode — Zero blue/green wavelength bleed for dark nurseries */
+  html[data-theme='redlight'] {
+    color-scheme: dark;
+    --bg-canvas: #070102;
+    --bg-surface: rgba(244, 63, 94, 0.08);
+    --bg-elevated: #180408;
+    --text-primary: #ffe4e6;
+    --text-secondary: #fb7185;
+    --accent-primary: #f43f5e;
+    --border-subtle: rgba(244, 63, 94, 0.32);
+  }
+
+  /* Harmonize secondary accents into pure 640nm crimson spectrum when Red Light mode is active */
+  html[data-theme='redlight'] .text-sky-400,
+  html[data-theme='redlight'] .text-emerald-400,
+  html[data-theme='redlight'] .text-emerald-300,
+  html[data-theme='redlight'] .text-amber-400 {
+    color: #fb7185 !important;
+  }
+
+  html[data-theme='redlight'] .bg-sky-400,
+  html[data-theme='redlight'] .bg-amber-400 {
+    background-color: #f43f5e !important;
+  }
+
+  html[data-theme='redlight'] .border-amber-400\/30,
+  html[data-theme='redlight'] .border-amber-400\/40,
+  html[data-theme='redlight'] .border-amber-400\/50,
+  html[data-theme='redlight'] .border-emerald-500\/30 {
+    border-color: rgba(244, 63, 94, 0.48) !important;
+  }
+
+  html[data-theme='redlight'] .bg-amber-400\/15,
+  html[data-theme='redlight'] .bg-amber-400\/20,
+  html[data-theme='redlight'] .bg-emerald-950\/30,
+  html[data-theme='redlight'] .bg-emerald-950\/40 {
+    background-color: rgba(244, 63, 94, 0.16) !important;
+  }
+
   html[data-large-text='true'] {
     font-size: 112.5%;
   }

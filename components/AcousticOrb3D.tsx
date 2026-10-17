@@ -16,7 +16,7 @@ interface AcousticOrb3DProps {
   isRecording: boolean;
   analyzing: boolean;
   audioEnergy?: number;
-  themeMode: 'nocturne' | 'lunar' | 'daylight';
+  themeMode: 'nocturne' | 'lunar' | 'daylight' | 'redlight';
   onSelectCryNode?: (preset: CryPresetKey) => void;
 }
 
@@ -118,7 +118,7 @@ export function AcousticOrb3D({
     analyzing: false,
     audioEnergy: 0.2,
     activeCategory: 'Gas / Colic',
-    themeMode: 'nocturne' as 'nocturne' | 'lunar' | 'daylight',
+    themeMode: 'nocturne' as 'nocturne' | 'lunar' | 'daylight' | 'redlight',
   });
 
   useEffect(() => {
@@ -486,7 +486,9 @@ export function AcousticOrb3D({
           ? 0xf5f2eb
           : st.themeMode === 'lunar'
             ? 0x090d16
-            : 0x0c0a09;
+            : st.themeMode === 'redlight'
+              ? 0x070102
+              : 0x0c0a09;
       _tempColor.setHex(targetBgHex);
       if (scene.background instanceof THREE.Color) {
         scene.background.lerp(_tempColor, 0.08);
@@ -503,8 +505,12 @@ export function AcousticOrb3D({
         delta
       );
 
-      // Update finish properties based on selected swatch
-      if (st.finish === 'gold') {
+      // Update finish properties based on selected swatch or Red Light mode
+      if (st.themeMode === 'redlight') {
+        coreMat.color.setHex(0xf43f5e);
+        coreMat.metalness = 0.75;
+        coreMat.roughness = 0.2;
+      } else if (st.finish === 'gold') {
         coreMat.color.setHex(0xfbbf24);
         coreMat.metalness = 0.88;
         coreMat.roughness = 0.16;
