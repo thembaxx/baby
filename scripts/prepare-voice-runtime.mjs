@@ -8,19 +8,25 @@ const runtime = dirname(
   require.resolve("onnxruntime-web", { paths: [dirname(transformers)] }),
 );
 const target = resolve("public/voice-runtime");
+const { version } = require(resolve(runtime, "../package.json"));
+const versionedTarget = resolve(target, version);
 const files = [
   "ort-wasm-simd-threaded.jsep.mjs",
   "ort-wasm-simd-threaded.jsep.wasm",
 ];
-await mkdir(target, { recursive: true });
+await mkdir(versionedTarget, { recursive: true });
 let bytes = 92361116 + 4 * 522240;
 for (const file of files) {
-  await copyFile(resolve(runtime, file), resolve(target, file));
-  bytes += (await stat(resolve(target, file))).size;
+  await copyFile(resolve(runtime, file), resolve(versionedTarget, file));
+  bytes += (await stat(resolve(versionedTarget, file))).size;
 }
 await writeFile(
   resolve(target, "manifest.json"),
-  JSON.stringify({ files, bytes }),
+  JSON.stringify({
+    version,
+    files: files.map((file) => `${version}/${file}`),
+    bytes,
+  }),
 );
 console.log(
   `Prepared optional voice runtime (${Math.ceil(bytes / 1000000)} MB total pack).`,

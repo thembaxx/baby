@@ -8,6 +8,8 @@ import {
   VOICE_PACK_MARKER,
   VOICE_VECTOR_CACHE,
   VOICE_MODEL_URL,
+  VOICE_RUNTIME_VERSION,
+  VOICE_RUNTIME_BASE,
   voiceVectorUrl,
   type VoiceWorkerRequest,
   type VoiceWorkerResponse,
@@ -27,7 +29,7 @@ scope.onmessage = async ({ data }) => {
   try {
     const downloading = data.type === "download";
     const cache = await caches.open(VOICE_PACK_CACHE);
-    const runtimeBase = new URL("/voice-runtime/", scope.location.origin).href;
+    const runtimeBase = new URL(VOICE_RUNTIME_BASE, scope.location.origin).href;
     const nativeFetch = globalThis.fetch.bind(globalThis);
     // Runtime files also live in the pack cache, so inference needs no network.
     globalThis.fetch = async (input, init) => {
@@ -49,17 +51,30 @@ scope.onmessage = async ({ data }) => {
       return nativeFetch(input, init);
     };
     if (downloading) {
-      const manifest = await nativeFetch(`${runtimeBase}manifest.json`).then(
-        (response) => {
-          if (!response.ok)
-            throw new Error(
-              "Voice files could not be loaded. Please try again.",
-            );
-          return response.json() as Promise<{ files: string[] }>;
-        },
-      );
+      const manifest = await nativeFetch(
+        new URL("/voice-runtime/manifest.json", scope.location.origin),
+      ).then((response) => {
+        if (!response.ok)
+          throw new Error("Voice files could not be loaded. Please try again.");
+        return response.json() as Promise<{ version: string; files: string[] }>;
+      });
+      if (manifest.version !== VOICE_RUNTIME_VERSION)
+        throw new Error(
+          "The voice engine was updated. Reload the app and try the download again.",
+        );
+      // Keep the large model, but discard runtime assets from older engines.
+      for (const request of await cache.keys()) {
+        const url = new URL(request.url);
+        if (
+          url.origin === scope.location.origin &&
+          url.pathname.startsWith("/voice-runtime/") &&
+          !request.url.startsWith(runtimeBase)
+        )
+          await cache.delete(request);
+      }
       for (const file of manifest.files) {
-        const url = `${runtimeBase}${file}`;
+        const url = new URL(`/voice-runtime/${file}`, scope.location.origin)
+          .href;
         if (!(await cache.match(url))) {
           const response = await nativeFetch(url);
           if (!response.ok)
@@ -132,7 +147,9 @@ scope.onmessage = async ({ data }) => {
         );
       await cache.put(
         VOICE_PACK_MARKER,
-        new Response(JSON.stringify({ version: 1 })),
+        new Response(
+          JSON.stringify({ version: 1, runtimeVersion: VOICE_RUNTIME_VERSION }),
+        ),
       );
       send({ type: "ready" });
     } else {

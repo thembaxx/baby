@@ -89,7 +89,9 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
             <small>
               {voice.packReady
                 ? "Downloaded · ready offline"
-                : "Optional download · about 117 MB"}
+                : voice.packStored
+                  ? "Saved voices need an update"
+                  : "Optional download · about 117 MB"}
             </small>
           </span>
           <CaretDown size={18} aria-hidden="true" />
@@ -179,12 +181,23 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
               type="button"
               className="quiet-action voice-download-button"
               onClick={() => void voice.download()}
-              disabled={voice.packChecking}
+              disabled={voice.packChecking || voice.removing}
             >
               <DownloadSimple size={18} aria-hidden="true" />
               {voice.packChecking
                 ? "Checking saved voices…"
                 : "Download free voice pack"}
+            </button>
+          )}
+          {voice.packStored && !voice.packReady && !voice.downloading && (
+            <button
+              type="button"
+              className="quiet-action voice-download-button"
+              disabled={voice.removing}
+              onClick={() => void voice.remove()}
+            >
+              <Trash size={16} aria-hidden="true" />
+              {voice.removing ? "Removing…" : "Remove download"}
             </button>
           )}
           <p className="voice-attribution">

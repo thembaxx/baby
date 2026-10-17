@@ -1,6 +1,13 @@
 export const VOICE_PACK_CACHE = "kora-voices-v1";
 export const VOICE_PACK_MARKER = "/__kora/voice-pack-v1.json";
 export const VOICE_VECTOR_CACHE = "kokoro-voices";
+export const VOICE_RUNTIME_VERSION =
+  process.env.NEXT_PUBLIC_VOICE_RUNTIME_VERSION;
+export const VOICE_RUNTIME_BASE = `/voice-runtime/${VOICE_RUNTIME_VERSION}/`;
+export const VOICE_RUNTIME_FILES = [
+  "ort-wasm-simd-threaded.jsep.mjs",
+  "ort-wasm-simd-threaded.jsep.wasm",
+];
 export const VOICE_MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX";
 export const VOICE_REVISION = "1939ad2a8e416c0acfeecc08a694d14ef25f2231";
 export const VOICE_MODEL_URL = `https://huggingface.co/${VOICE_MODEL}/resolve/${VOICE_REVISION}/onnx/model_quantized.onnx`;

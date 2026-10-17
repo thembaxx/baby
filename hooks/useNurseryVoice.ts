@@ -10,7 +10,11 @@ import {
 } from "react";
 import { useClientReady } from "./use-client-ready";
 import { readStoredValue } from "@/lib/storage";
-import { hasVoicePack, removeVoicePack } from "@/lib/voice-cache";
+import {
+  hasVoicePack,
+  hasSavedVoiceFiles,
+  removeVoicePack,
+} from "@/lib/voice-cache";
 import { startVoiceJob, type VoiceJob } from "@/lib/voice-worker-client";
 import {
   DEFAULT_VOICE_PREFERENCES,
@@ -78,6 +82,7 @@ export function useNurseryVoice() {
     "idle",
   );
   const [packReady, setPackReady] = useState(false);
+  const [packStored, setPackStored] = useState(false);
   const [packChecking, setPackChecking] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -92,10 +97,11 @@ export function useNurseryVoice() {
 
   useEffect(() => {
     let active = true;
-    void hasVoicePack()
-      .then((ready) => {
+    void Promise.all([hasVoicePack(), hasSavedVoiceFiles()])
+      .then(([ready, stored]) => {
         if (!active) return;
         setPackReady(ready);
+        setPackStored(stored);
         setPackChecking(false);
         if (!ready)
           setStoredPreferences((value) =>
@@ -303,12 +309,14 @@ export function useNurseryVoice() {
           "The voice pack was not saved completely. Check available storage and try again.",
         );
       setPackReady(true);
+      setPackStored(true);
       setProgress(100);
       if (navigator.storage?.persist)
         void navigator.storage.persist().catch(() => {});
     } catch (failure) {
       // A cancelled or failed optional download must not leave hidden storage behind.
       await removeVoicePack().catch(() => {});
+      setPackStored(await hasSavedVoiceFiles().catch(() => true));
       setProgress(0);
       if (!aborted(failure))
         setError(
@@ -331,6 +339,7 @@ export function useNurseryVoice() {
     try {
       await removeVoicePack();
       setPackReady(false);
+      setPackStored(false);
       setProgress(0);
       setStoredPreferences((value) =>
         isFreeVoice(value.voice)
@@ -349,6 +358,7 @@ export function useNurseryVoice() {
     status,
     error,
     packReady,
+    packStored,
     packChecking,
     downloading,
     removing,
