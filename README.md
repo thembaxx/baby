@@ -36,6 +36,16 @@ OLLAMA_KEEP_ALIVE=24h ollama serve
 npm run dev
 ```
 
+## Nursery screens
+
+Kora has three icon-only tabs in a floating, theme-aware bottom bar:
+
+- **Soothe:** cry recording and translation, soothing checklist and timer, calming sounds, and voice controls. Expand the probability breakdown for more detail; enable the optional 3D orb in Settings.
+- **Care:** routine check-ins, family care log and reminders, medication schedules, sleep trends, and family handoff notes.
+- **Settings:** lighting themes (including live system appearance), caregiver view, larger text, 3D visualization, vibration strength, screen wake lock, app installation, and offline/local AI options.
+
+Preferences and care logs are saved locally. Switching tabs preserves audio, timers, checklists, drafts, and each screen’s scroll position. Motion follows the device’s Reduce Motion preference. The tab bar supports arrow keys, Home, and End.
+
 ## Architecture Highlights
 
 - **`components/CryRecorder.tsx`**: 5.0-second browser `MediaRecorder` capture (`audio/webm`, `audio/mp4`, or 16 kHz PCM WAV) with real-time 24-bar Web Audio FFT spectrum visualization and 4 built-in pediatric Dunstan cry acoustic synthesizers (*Hunger "Neh"*, *Gas / Colic "Eairh"*, *Overtired "Owh"*, *Discomfort "Heh"*).
