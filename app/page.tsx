@@ -138,6 +138,11 @@ export default function HomePage() {
   const [largeText, setLargeText] = useState(false);
   const [showAdvancedTech, setShowAdvancedTech] = useState(false);
   const [show3DVisualizer, setShow3DVisualizer] = useState(true);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // Theme & Brand Logo Craft State
   const [themeSetting, setThemeSetting] = useState<ThemeSetting>('nocturne');
@@ -1021,7 +1026,7 @@ export default function HomePage() {
             {/* Step 2: Plain-English "What Baby Likely Needs & How to Calm" Card */}
             <motion.div
               key={analysis.primaryCategory + analysis.confidenceScore}
-              initial={{ opacity: 0.85, y: 6 }}
+              initial={hasMounted ? { opacity: 0.85, y: 6 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-6"
@@ -1196,7 +1201,7 @@ export default function HomePage() {
                         </div>
                         <div className="w-full h-2.5 rounded-full bg-stone-800/60 overflow-hidden">
                           <motion.div
-                            initial={{ width: 0 }}
+                            initial={hasMounted ? { width: 0 } : false}
                             animate={{
                               width: `${Math.max(4, Math.min(100, item.val))}%`,
                             }}
@@ -1428,7 +1433,7 @@ export default function HomePage() {
                     >
                       {active && (
                         <motion.span
-                          layoutId="careLogActiveFilter"
+                          layoutId={hasMounted ? 'careLogActiveFilter' : undefined}
                           transition={{
                             type: 'spring',
                             stiffness: 420,
@@ -1445,11 +1450,11 @@ export default function HomePage() {
 
               {/* Log Items List with Framer Motion Entry & Exit Animations */}
               <div className="flex flex-col divide-y divide-[var(--border-subtle)] overflow-hidden">
-                <AnimatePresence initial={false} mode="popLayout">
+                <AnimatePresence initial={false}>
                   {filteredLogs.length === 0 ? (
                     <motion.div
                       key="empty-care-logs"
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={hasMounted ? { opacity: 0, y: 8 } : false}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.18 }}
@@ -1460,9 +1465,13 @@ export default function HomePage() {
                   ) : (
                     filteredLogs.slice(0, 7).map((item) => (
                       <motion.div
-                        layout
+                        layout={hasMounted}
                         key={item.id}
-                        initial={{ opacity: 0, y: -12, scale: 0.97 }}
+                        initial={
+                          hasMounted
+                            ? { opacity: 0, y: -12, scale: 0.97 }
+                            : false
+                        }
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, x: -24, scale: 0.95 }}
                         transition={{
@@ -1595,27 +1604,27 @@ export default function HomePage() {
             onClick={() => setShowAdvancedTech((prev) => !prev)}
             className="w-full p-5 sm:p-6 flex items-center justify-between gap-4 text-left hover:bg-[var(--bg-elevated)]/40 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
+            <span className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
                 <Sliders className="w-5 h-5 text-[var(--accent-primary)]" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-[var(--text-primary)]">
+              </span>
+              <span className="block">
+                <span className="text-base font-bold text-[var(--text-primary)] block">
                   Offline Mode & Advanced AI Settings (Optional)
-                </h2>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                </span>
+                <span className="text-xs text-[var(--text-secondary)] mt-0.5 block">
                   Download offline cry packs for travel or connect a home computer running Ollama
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent-primary)] shrink-0">
+                </span>
+              </span>
+            </span>
+            <span className="flex items-center gap-2 text-xs font-semibold text-[var(--accent-primary)] shrink-0">
               <span>{showAdvancedTech ? 'Hide Settings' : 'Show Settings'}</span>
               {showAdvancedTech ? (
                 <ChevronUp className="w-4 h-4" />
               ) : (
                 <ChevronDown className="w-4 h-4" />
               )}
-            </div>
+            </span>
           </button>
 
           {showAdvancedTech && (

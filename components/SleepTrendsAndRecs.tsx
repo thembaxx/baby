@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Moon,
   Sun,
@@ -173,6 +173,11 @@ export function SleepTrendsAndRecs({
     {}
   );
   const [babyAgeWeeks, setBabyAgeWeeks] = useState<number>(8);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const visibleData = useMemo(() => {
     return sleepRecords.slice(-rangeDays);
@@ -472,11 +477,11 @@ export function SleepTrendsAndRecs({
           {/* Interactive Stacked Bar & Trend Chart */}
           <div className="relative pt-4 pb-2">
             {/* Reference Pediatric Target Guideline Line (14.5h) */}
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {chartMode === 'stacked' && (
                 <motion.div
                   key="pediatric-target-line"
-                  initial={{ opacity: 0, y: -6 }}
+                  initial={hasMounted ? { opacity: 0, y: -6 } : false}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -493,7 +498,7 @@ export function SleepTrendsAndRecs({
             </AnimatePresence>
 
             <div className="h-[196px] flex items-end justify-between gap-2 sm:gap-3 pt-4">
-              <AnimatePresence initial={false} mode="popLayout">
+              <AnimatePresence initial={false}>
                 {visibleData.map((day, idx) => {
                   const globalIndex =
                     sleepRecords.length - visibleData.length + idx;
@@ -513,10 +518,14 @@ export function SleepTrendsAndRecs({
 
                   return (
                     <motion.button
-                      layout
+                      layout={hasMounted}
                       key={day.dateStr}
                       type="button"
-                      initial={{ opacity: 0, y: 18, scale: 0.92 }}
+                      initial={
+                        hasMounted
+                          ? { opacity: 0, y: 18, scale: 0.92 }
+                          : false
+                      }
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 16, scale: 0.88 }}
                       transition={{
@@ -530,11 +539,11 @@ export function SleepTrendsAndRecs({
                     >
                       <motion.span
                         key={`${chartMode}-${totalHours}-${day.longestStretchHours}`}
-                        initial={{ opacity: 0, y: 4 }}
+                        initial={hasMounted ? { opacity: 0, y: 4 } : false}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.18 }}
-                        className={`text-[10px] font-mono tabular-nums transition-colors ${
+                        className={`text-[10px] font-mono tabular-nums transition-colors block ${
                           isSelected
                             ? 'text-[var(--accent-primary)] font-bold'
                             : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
@@ -545,7 +554,7 @@ export function SleepTrendsAndRecs({
                           : `${day.longestStretchHours}h`}
                       </motion.span>
 
-                      <div
+                      <span
                         className={`w-full max-w-[38px] h-[145px] rounded-xl p-0.5 flex flex-col justify-end overflow-hidden transition-all ${
                           isSelected
                             ? 'ring-2 ring-amber-400/70 bg-white/[0.06]'
@@ -554,38 +563,45 @@ export function SleepTrendsAndRecs({
                       >
                         <AnimatePresence initial={false}>
                           {chartMode === 'stacked' && (
-                            <motion.div
+                            <motion.span
                               key="nap-bar"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: `${napHeightPct}%`, opacity: 1 }}
+                              initial={
+                                hasMounted
+                                  ? { height: 0, opacity: 0 }
+                                  : false
+                              }
+                              animate={{
+                                height: `${napHeightPct}%`,
+                                opacity: 1,
+                              }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{
                                 duration: 0.28,
                                 ease: [0.16, 1, 0.3, 1],
                               }}
-                              className="w-full rounded-t-lg bg-amber-400/85 mb-0.5"
+                              className="w-full rounded-t-lg bg-amber-400/85 mb-0.5 block"
                               title={`Daytime naps: ${day.napHours}h`}
                             />
                           )}
                         </AnimatePresence>
-                        <motion.div
-                          layout
-                          initial={{ height: 0 }}
+                        <motion.span
+                          layout={hasMounted}
+                          initial={hasMounted ? { height: 0 } : false}
                           animate={{ height: `${nightHeightPct}%` }}
                           transition={{
                             duration: 0.34,
                             ease: [0.16, 1, 0.3, 1],
                           }}
-                          className={`w-full ${
+                          className={`w-full block ${
                             chartMode === 'stacked'
                               ? 'rounded-b-lg bg-sky-500/85'
                               : 'rounded-lg bg-amber-400'
                           }`}
                           title={`Night sleep: ${day.nightHours}h`}
                         />
-                      </div>
+                      </span>
 
-                      <div className="flex flex-col items-center">
+                      <span className="flex flex-col items-center">
                         <span
                           className={`text-[11px] font-medium ${
                             isSelected
@@ -598,7 +614,7 @@ export function SleepTrendsAndRecs({
                         <span className="text-[10px] font-mono tabular-nums text-[var(--text-secondary)] hidden sm:inline">
                           {day.dateStr.replace('Oct ', '10/')}
                         </span>
-                      </div>
+                      </span>
                     </motion.button>
                   );
                 })}
@@ -640,11 +656,11 @@ export function SleepTrendsAndRecs({
           </div>
 
           {/* Selected Day Detailed Telemetry Inspector with Entry/Exit Animation */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} mode="wait">
             {selectedDay && (
               <motion.div
                 key={selectedDay.dateStr}
-                initial={{ opacity: 0, y: 8 }}
+                initial={hasMounted ? { opacity: 0, y: 8 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -719,14 +735,14 @@ export function SleepTrendsAndRecs({
           </div>
 
           <div className="flex flex-col gap-3">
-            <AnimatePresence initial={false} mode="popLayout">
+            <AnimatePresence initial={false}>
               {recommendations.map((rec, idx) => {
                 const isDone = Boolean(completedRecs[rec.id]);
                 return (
                   <motion.div
-                    layout
+                    layout={hasMounted}
                     key={rec.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={hasMounted ? { opacity: 0, y: 10 } : false}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96 }}
                     transition={{

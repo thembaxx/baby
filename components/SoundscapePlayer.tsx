@@ -279,15 +279,15 @@ export function SoundscapePlayer({
                   : 'bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center justify-between gap-2 w-full">
                 <span className="text-xs font-semibold">{profile.title}</span>
                 <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
                   {profile.targetFreq}
                 </span>
-              </div>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-1">
+              </span>
+              <span className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-1 block">
                 {profile.subtitle}
-              </p>
+              </span>
             </button>
           );
         })}

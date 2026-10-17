@@ -371,7 +371,7 @@ export function CryRecorder({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col gap-5 p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)]"
