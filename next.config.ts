@@ -1,6 +1,14 @@
 import type {NextConfig} from 'next';
+import {createRequire} from 'node:module';
+import {dirname, resolve} from 'node:path';
+
+const require = createRequire(import.meta.url);
+const transformers = require.resolve('@huggingface/transformers');
+const runtime = dirname(require.resolve('onnxruntime-web', {paths: [dirname(transformers)]}));
+const runtimeVersion: string = require(resolve(runtime, '../package.json')).version;
 
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_VOICE_RUNTIME_VERSION: runtimeVersion },
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,

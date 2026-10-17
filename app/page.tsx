@@ -56,6 +56,8 @@ import {
   type HapticEventPayload,
 } from '@/lib/haptics';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
+import { VoiceSettings } from '@/components/VoiceSettings';
+import { useNurseryVoice } from '@/hooks/useNurseryVoice';
 import { useClientReady } from '@/hooks/use-client-ready';
 import { readStoredValue } from '@/lib/storage';
 
@@ -147,6 +149,7 @@ const FRIENDLY_CATEGORY_TITLE: Record<string, string> = {
 };
 
 export default function HomePage() {
+  const voice = useNurseryVoice();
   const [analysis, setAnalysis] = useState<CryAnalysisResult>(INITIAL_ANALYSIS);
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>(
     {}
@@ -669,17 +672,14 @@ export default function HomePage() {
 
   // Speak soothing steps aloud for hands-free caregivers / grandparents
   const speakResultAloud = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+    if (voice.status !== 'idle') { voice.stop(); return; }
     const friendlyHeading =
       FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] ||
       analysis.primaryCategory;
     const text = `Baby most likely needs help with ${friendlyHeading}. ${analysis.immediateSoothingAction}. ${
       analysis.soothingSteps ? analysis.soothingSteps.join('. ') : ''
     }`;
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 0.92;
-    window.speechSynthesis.speak(utter);
+    void voice.speak(text);
   };
 
   // Toggle Native Screen Wake Lock
@@ -1008,7 +1008,7 @@ export default function HomePage() {
                           className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap"
                         >
                           <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
-                          <span>Read Steps Aloud</span>
+                          <span>{voice.status === 'preparing' ? 'Cancel speech' : voice.status === 'speaking' ? 'Stop reading' : 'Read Steps Aloud'}</span>
                         </button>
 
                         <button
@@ -1194,7 +1194,10 @@ export default function HomePage() {
 
                 {/* Hands-Free Voice Reader & Voice Commands */}
                 <VoiceControlBar
-                  analysis={analysis}
+                  onReadAloud={speakResultAloud}
+                  onPrepareSpeech={voice.preparePlayback}
+                  speechStatus={voice.status}
+                  speechError={voice.error}
                   onTriggerPresetCry={(preset) =>
                     setExternalPresetTrigger({ preset, ts: Date.now() })
                   }
@@ -1314,7 +1317,7 @@ export default function HomePage() {
                     title="Read soothing steps out loud"
                   >
                     <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
-                    <span>Read Aloud</span>
+                    <span>{voice.status !== 'idle' ? 'Stop reading' : 'Read Aloud'}</span>
                   </button>
                 </div>
               </div>
@@ -1735,6 +1738,7 @@ export default function HomePage() {
                 })
               }
             />
+            <VoiceSettings voice={voice} />
             <div className="settings-install">
               <div>
                 <h2>Keep Kora close</h2>
