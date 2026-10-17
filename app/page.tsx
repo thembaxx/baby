@@ -25,6 +25,7 @@ import { OfflineModelManager } from '@/components/OfflineModelManager';
 import { VoiceControlBar } from '@/components/VoiceControlBar';
 import { PWAInstallButton, OfflineIndicator } from '@/components/PWAInstallButton';
 import { KoraLogo, type LogoVariant } from '@/components/KoraLogo';
+import { SleepTrendsAndRecs } from '@/components/SleepTrendsAndRecs';
 import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
 
 type ThemeSetting = 'nocturne' | 'lunar' | 'daylight' | 'system';
@@ -515,16 +516,16 @@ export default function HomePage() {
             Nursery Log
           </a>
           <a
+            href="#sleep-trends"
+            className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
+          >
+            Sleep Trends
+          </a>
+          <a
             href="#offline-llm"
             className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
           >
             Offline LLM
-          </a>
-          <a
-            href="#ollama-setup"
-            className="hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0"
-          >
-            Ollama Pipeline
           </a>
         </nav>
 
@@ -1134,6 +1135,36 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* Sleep Trend Analytics & Smart Pediatric Recommendations */}
+        <SleepTrendsAndRecs
+          analysis={analysis}
+          minsSinceFeed={minsSinceFeed}
+          minsSinceSleep={minsSinceSleep}
+          minsSinceDiaper={minsSinceDiaper}
+          onLogSleepBlock={(hours, kind) => {
+            setMinsSinceSleep(0);
+            const nowTime = new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+            saveLogs([
+              {
+                id: `sleep-block-${Date.now()}`,
+                type: 'sleep',
+                title:
+                  kind === 'night'
+                    ? `Night Sleep Stretch (+${hours}h)`
+                    : `Daytime Nap (+${hours}h)`,
+                detail: 'Logged from Sleep Trend Analytics chart',
+                timestamp: nowTime,
+                minutesAgo: 0,
+              },
+              ...careLogs,
+            ]);
+          }}
+          onStartWindDownTimer={() => setSoothingTimerSecs(60)}
+        />
 
         {/* Optional Offline On-Device LLM & Acoustic Weights Manager */}
         <section id="offline-llm">
