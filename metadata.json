@@ -1,0 +1,6 @@
+{
+  "name": "Nocturne Cry — Infant Cry Decoder & Nursery Companion",
+  "description": "Privacy-first infant cry audio analyzer powered by local Ollama (qwen2-audio) and the Vercel AI SDK, paired with a 3:00 AM low-glare nursery care tracker and soothing soundscape synthesizer.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
