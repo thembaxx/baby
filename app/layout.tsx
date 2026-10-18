@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, DM_Sans, JetBrains_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="min-h-dvh antialiased selection:bg-amber-400/20 selection:text-amber-200"
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );

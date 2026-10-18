@@ -19,6 +19,7 @@
     "@huggingface/transformers": "^3.5.1",
     "@phosphor-icons/react": "^2.1.10",
     "@types/three": "^0.186.0",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^7.0.143",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
