@@ -4,6 +4,7 @@ on:
     workflows: ["Lightweight quality"]
     types: [completed]
 permissions:
+  contents: read
   actions: read
   issues: write
 jobs:
