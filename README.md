@@ -74,3 +74,8 @@ The settings vibration-strength control, caregiver card hover glow and an expand
 CI now runs TypeScript, lint, Node unit tests and production build. The server restricts Ollama to its configured endpoint rather than accepting arbitrary public URLs (SSRF protection); malformed or oversized audio is rejected. If real audio cannot be analyzed, the API returns HTTP 503 instead of inventing a category or confidence score. Synthetic reference examples are identified as demonstrations, and percentages are not medical probabilities.
 
 To select a remote/local Ollama target, configure `OLLAMA_BASE_URL` on the server; public client-supplied endpoints are not honored. Hosted use still requires authentication, rate limits and privacy review before processing recordings.
+
+
+### Medication logging safety
+
+A new install contains no fabricated medication records or dose presets. Adding a medication creates a schedule only; no dose is automatically recorded or reminder started. Dose logging requires an explicit confirmation. Existing local browser records remain intact. Reminders are not medical clearance to administer any drug, and this software does not verify pediatric dosing.
