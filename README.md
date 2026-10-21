@@ -62,3 +62,8 @@ Downloads require HTTPS (or localhost), Cache Storage, workers, WebAssembly, and
 - **`components/VoiceControlBar.tsx`, `hooks/useNurseryVoice.ts` & `lib/voice.worker.ts`**: Hands-free recognition commands, shared device speech, and optional local Kokoro speech. Voice preferences and offline downloads live in `components/VoiceSettings.tsx`.
 - **`components/OfflineModelManager.tsx`**: Optional in-browser `IndexedDB` quantized acoustic weights downloader (`navigator.storage.persist()`) and custom Ollama `Modelfile` exporter.
 - **Full PWA & SEO**: Includes `app/manifest.ts`, service worker (`/sw.js`), `192x192` / `512x512` / `maskable` / `apple-touch-icon.png` assets, `/llm.txt`, `/llms.txt`, `/robots.txt`, and `/sitemap.xml`.
+
+
+## EasyUI UI adaptations
+
+The settings vibration-strength control, caregiver card hover glow and an expandable model/privacy explanation adapt [EasyUI](https://easyui.site/components/). They retain the existing Motion dependency and honor reduced motion. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

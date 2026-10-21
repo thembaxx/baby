@@ -13,6 +13,7 @@ import {
 
 import { useClientReady } from '@/hooks/use-client-ready';
 import { readStoredValue } from '@/lib/storage';
+import { SpotlightCard } from './easyui/SpotlightCard';
 
 export type CaregiverRole = 'parent' | 'grandparent' | 'babysitter';
 
@@ -68,7 +69,7 @@ export function CaregiverHandoffCard({
   const nextNapInMins = Math.max(0, 75 - minsSinceSleep);
 
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
+    <SpotlightCard className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
       {/* Baby profile and family handoff context */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
@@ -111,7 +112,7 @@ export function CaregiverHandoffCard({
             <span>What Calms {profile.babyName} Best</span>
           </div>
           <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5">
-            Works 9 out of 10 times
+            Personal soothing notes
           </p>
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             {profile.favoriteSoothing}
@@ -213,6 +214,6 @@ export function CaregiverHandoffCard({
           </div>
         </form>
       )}
-    </div>
+    </SpotlightCard>
   );
 }

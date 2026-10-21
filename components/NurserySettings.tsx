@@ -14,6 +14,8 @@ import {
   CaretDown,
 } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
+import { AnimatedTabs } from './easyui/AnimatedTabs';
+import { UnfoldAccordion } from './easyui/UnfoldAccordion';
 import type { CaregiverRole } from './CaregiverHandoffCard';
 import type { HapticIntensity } from '@/lib/haptics';
 
@@ -203,24 +205,12 @@ export function NurserySettings(props: NurserySettingsProps) {
               <p>Choose what feels comfortable.</p>
             </div>
           </div>
-          <div
-            className="haptic-options"
-            role="group"
-            aria-label="Vibration strength"
-          >
-            {(['off', 'gentle', 'standard', 'strong'] as const).map(
-              (intensity) => (
-                <button
-                  key={intensity}
-                  type="button"
-                  aria-pressed={props.hapticIntensity === intensity}
-                  onClick={() => props.onHapticChange(intensity)}
-                >
-                  {intensity}
-                </button>
-              )
-            )}
-          </div>
+          <AnimatedTabs
+            label="Vibration strength"
+            items={[{ id: 'off', label: 'Off' }, { id: 'gentle', label: 'Gentle' }, { id: 'standard', label: 'Standard' }, { id: 'strong', label: 'Strong' }]}
+            value={props.hapticIntensity}
+            onChange={value => props.onHapticChange(value as HapticIntensity)}
+          />
           <button
             type="button"
             className="quiet-action haptic-preview"
@@ -235,6 +225,12 @@ export function NurserySettings(props: NurserySettingsProps) {
           </p>
         </section>
       </div>
+      <section className="settings-section" aria-label="About Kora">
+        <UnfoldAccordion title="Privacy, model limits & safe use">
+          <p>Kora is an experimental care journal, not a medical device. Cry categories and percentages are not clinically validated diagnoses. Check your baby directly, and contact a healthcare professional for concerns or urgent symptoms.</p>
+          <p>Care notes stay in this browser’s local storage. Audio is sent to a configured inference service only when you request analysis; an unavailable model cannot provide a real cry analysis.</p>
+        </UnfoldAccordion>
+      </section>
     </>
   );
 }
