@@ -178,11 +178,14 @@ export function CryRecorder({
             });
 
             const result = await response.json();
-            onClassificationResult(result, audioUrl);
+            if (!response.ok || !result?.primaryCategory) {
+              throw new Error(typeof result?.error === 'string' ? result.error : 'Audio analysis unavailable');
+            }
+            onClassificationResult(result as CryAnalysisResult, audioUrl);
           } catch (innerErr) {
             console.error('Cry analysis request failed:', innerErr);
             setErrorMessage(
-              'Could not analyze the sound right now. Please try again.'
+              innerErr instanceof Error ? innerErr.message : 'Could not analyze the sound right now. Please try again.'
             );
           } finally {
             setAnalyzing(false);

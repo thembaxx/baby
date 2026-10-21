@@ -67,3 +67,10 @@ Downloads require HTTPS (or localhost), Cache Storage, workers, WebAssembly, and
 ## EasyUI UI adaptations
 
 The settings vibration-strength control, caregiver card hover glow and an expandable model/privacy explanation adapt [EasyUI](https://easyui.site/components/). They retain the existing Motion dependency and honor reduced motion. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
+## Quality and inference security
+
+CI now runs TypeScript, lint, Node unit tests and production build. The server restricts Ollama to its configured endpoint rather than accepting arbitrary public URLs (SSRF protection); malformed or oversized audio is rejected. If real audio cannot be analyzed, the API returns HTTP 503 instead of inventing a category or confidence score. Synthetic reference examples are identified as demonstrations, and percentages are not medical probabilities.
+
+To select a remote/local Ollama target, configure `OLLAMA_BASE_URL` on the server; public client-supplied endpoints are not honored. Hosted use still requires authentication, rate limits and privacy review before processing recordings.

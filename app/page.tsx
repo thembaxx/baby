@@ -925,7 +925,7 @@ export default function HomePage() {
               <div>
                 <p className="screen-eyebrow">Here for the little moments</p>
                 <h1>Find a little calm.</h1>
-                <p>Understand the cry. Find what helps.</p>
+                <p>Explore calming routines. Cry analysis is experimental, not a diagnosis.</p>
               </div>
               <span className="privacy-note">
                 <ShieldCheck size={16} aria-hidden="true" />
@@ -972,7 +972,12 @@ export default function HomePage() {
                       <h2 className="text-2xl font-bold text-[var(--text-primary)] mt-1">
                         {friendlyHeadline}
                       </h2>
-                      {analysis.acousticSignature && (
+                      {analysis.engineUsed === 'local-acoustic-fallback' && (
+                          <p role="note" className="text-xs text-[var(--accent-primary)] mt-2 leading-relaxed">
+                            Demonstration data only — no real cry was analyzed. Kora is not clinically validated.
+                          </p>
+                        )}
+                        {analysis.acousticSignature && (
                         <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                           {analysis.acousticSignature}
                         </p>
@@ -981,7 +986,7 @@ export default function HomePage() {
 
                     <div className="flex items-center sm:flex-col sm:items-end justify-between gap-2 shrink-0">
                       <span className="text-xs text-[var(--text-secondary)]">
-                        Likelihood Match
+                        Unvalidated model estimate
                       </span>
                       <span className="text-3xl font-bold font-mono tabular-nums text-[var(--accent-primary)]">
                         {analysis.confidenceScore}%
