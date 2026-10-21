@@ -378,7 +378,7 @@ export function MedicationLogCard({
             onSubmit={handleAddMedication}
             className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-3.5"
           >
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Only enter medication and dosing details prescribed by your child's clinician or pharmacist. Saving a schedule does not log administration or activate reminders.</p>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Only enter medication and dosing details prescribed by your child&apos;s clinician or pharmacist. Saving a schedule does not log administration or activate reminders.</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-semibold text-[var(--text-secondary)] block mb-1">
