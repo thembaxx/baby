@@ -3,6 +3,7 @@ import { generateObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { GoogleGenAI, Type } from '@google/genai';
+import { resolveOllamaBaseUrl, validateCryAudio } from '@/lib/cry-request-policy';
 
 // Define strict schema for the cry analysis breakdown
 const CryAnalysisSchema = z.object({
@@ -93,10 +94,10 @@ const PRESET_PROFILES: Record<string, CryAnalysisResult> = {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const customUrl =
-    searchParams.get('baseUrl') ||
-    process.env.OLLAMA_BASE_URL ||
-    'http://localhost:11434/v1';
+  const customUrl = resolveOllamaBaseUrl(searchParams.get('baseUrl') ?? undefined, process.env.OLLAMA_BASE_URL);
+  if (!customUrl) {
+    return NextResponse.json({ error: 'Only the server-configured model address is allowed.' }, { status: 400 });
+  }
   const tagsUrl = customUrl.replace(/\/v1\/?$/, '') + '/api/tags';
 
   try {
@@ -156,8 +157,15 @@ export async function POST(req: Request) {
     };
   } = {};
 
+  if (Number(req.headers.get('content-length') || 0) > 6 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Request too large.' }, { status: 413 });
+  }
   try {
-    parsedBody = await req.json();
+    const body: unknown = await req.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Expected a JSON object.' }, { status: 400 });
+    }
+    parsedBody = body as typeof parsedBody;
   } catch {
     return NextResponse.json(
       { error: 'Invalid JSON request payload' },
@@ -168,15 +176,28 @@ export async function POST(req: Request) {
   const {
     audioBase64 = '',
     mimeType = 'audio/webm',
-    ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+    ollamaBaseUrl: requestedOllamaBaseUrl,
     ollamaModel = process.env.OLLAMA_MODEL || 'qwen2-audio',
     inferenceMode = 'auto',
     presetHint,
     careContext,
   } = parsedBody;
 
+  const ollamaBaseUrl = resolveOllamaBaseUrl(requestedOllamaBaseUrl, process.env.OLLAMA_BASE_URL);
+  if (!ollamaBaseUrl) return NextResponse.json({ error: 'Only the server-configured model address is allowed.' }, { status: 400 });
+  const audioError = validateCryAudio(audioBase64, mimeType);
+  if (audioError) return NextResponse.json({ error: audioError }, { status: 400 });
+  if (!['auto', 'ollama', 'gemini'].includes(inferenceMode)) {
+    return NextResponse.json({ error: 'Unsupported inference mode.' }, { status: 400 });
+  }
+  if (typeof ollamaModel !== 'string' || !/^[A-Za-z0-9_.:\/-]{1,90}$/.test(ollamaModel)) {
+    return NextResponse.json({ error: 'Invalid model name.' }, { status: 400 });
+  }
+  const safeMinutes = (value: unknown) =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 20160 ? Math.round(value) : 'unknown';
+
   const contextSummary = careContext
-    ? `Recent nursery context: Last fed ${careContext.minutesSinceLastFeed ?? 'unknown'} mins ago, awake for ${careContext.minutesSinceLastSleep ?? 'unknown'} mins, last diaper change ${careContext.minutesSinceLastDiaper ?? 'unknown'} mins ago.`
+    ? `Recent nursery context: Last fed ${safeMinutes(careContext.minutesSinceLastFeed)} mins ago, awake for ${safeMinutes(careContext.minutesSinceLastSleep)} mins, last diaper change ${safeMinutes(careContext.minutesSinceLastDiaper)} mins ago.`
     : '';
 
   // 1. Attempt Local Ollama via Vercel AI SDK (when inferenceMode is 'auto' or 'ollama')
@@ -319,7 +340,7 @@ export async function POST(req: Request) {
 
       const rawText = response.text;
       if (rawText) {
-        const parsed = JSON.parse(rawText.trim());
+        const parsed = CryAnalysisSchema.parse(JSON.parse(rawText.trim()));
         return NextResponse.json({
           ...parsed,
           engineUsed: 'gemini-multimodal',
@@ -336,16 +357,18 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3. Fallback stub if local audio model weights aren't downloaded yet
-  const fallbackKey =
-    presetHint && PRESET_PROFILES[presetHint] ? presetHint : 'gas';
-  const fallbackData = PRESET_PROFILES[fallbackKey];
-
-  return NextResponse.json({
-    ...fallbackData,
-    engineUsed: 'local-acoustic-fallback',
-    modelName: `${ollamaModel} (fallback stub)`,
-    latencyMs: Date.now() - startTime,
-    timestamp: new Date().toISOString(),
-  });
+  // Synthetic test buttons may use illustrative data. Real audio never gets fake classifications.
+  if (typeof presetHint === 'string' && Object.hasOwn(PRESET_PROFILES, presetHint)) {
+    return NextResponse.json({
+      ...PRESET_PROFILES[presetHint],
+      engineUsed: 'local-acoustic-fallback',
+      modelName: 'Synthetic demo (not analyzed)',
+      latencyMs: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+    });
+  }
+  return NextResponse.json(
+    { error: 'No analysis model is available. Configure Ollama or Gemini and retry; no diagnosis was generated.' },
+    { status: 503 },
+  );
 }

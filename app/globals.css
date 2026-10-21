@@ -696,3 +696,17 @@
 .voice-attribution a { text-decoration: underline; text-underline-offset: 3px; }
 .voice-feedback { margin-top: 1rem; color: var(--text-secondary); font-size: 0.75rem; line-height: 1.7; }
 @media (max-width: 479px) { .voice-library { grid-template-columns: minmax(0, 1fr); } }
+
+/* Local EasyUI adaptations, matching all five Kora themes. */
+.easyui-animated-tabs { display: flex; align-items: center; gap: 4px; padding: 4px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 16px; }
+.easyui-animated-tabs button { position: relative; flex: 1 1 0; display: grid; place-items: center; min-height: 40px; padding: 6px 8px; isolation: isolate; border-radius: 12px; background: transparent; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: capitalize; }
+.easyui-animated-tabs button[aria-pressed="true"] { background: transparent; color: var(--text-primary); }
+.easyui-active-pill { position: absolute; inset: 0; z-index: -1; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: inherit; box-shadow: 0 2px 6px #00000012; }
+.easyui-tab-label { position: relative; z-index: 1; }
+.easyui-spotlight-card { position: relative; isolation: isolate; overflow: hidden; }
+.easyui-spotlight-glow { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.easyui-spotlight-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+.easyui-unfold-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 46px; padding: 8px 0; text-align: left; font-size: 14px; font-weight: 650; color: var(--text-primary); }
+.easyui-unfold-content { overflow: hidden; }
+.easyui-unfold-inner { display: grid; gap: 12px; padding: 3px 4px 16px; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+@media (hover:none), (prefers-reduced-motion: reduce) { .easyui-spotlight-glow { display:none; } }

@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "clean": "next clean",
     "predev": "node scripts/prepare-voice-runtime.mjs",
-    "prebuild": "node scripts/prepare-voice-runtime.mjs"
+    "prebuild": "node scripts/prepare-voice-runtime.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test lib/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.96",

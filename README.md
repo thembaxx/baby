@@ -62,3 +62,20 @@ Downloads require HTTPS (or localhost), Cache Storage, workers, WebAssembly, and
 - **`components/VoiceControlBar.tsx`, `hooks/useNurseryVoice.ts` & `lib/voice.worker.ts`**: Hands-free recognition commands, shared device speech, and optional local Kokoro speech. Voice preferences and offline downloads live in `components/VoiceSettings.tsx`.
 - **`components/OfflineModelManager.tsx`**: Optional in-browser `IndexedDB` quantized acoustic weights downloader (`navigator.storage.persist()`) and custom Ollama `Modelfile` exporter.
 - **Full PWA & SEO**: Includes `app/manifest.ts`, service worker (`/sw.js`), `192x192` / `512x512` / `maskable` / `apple-touch-icon.png` assets, `/llm.txt`, `/llms.txt`, `/robots.txt`, and `/sitemap.xml`.
+
+
+## EasyUI UI adaptations
+
+The settings vibration-strength control, caregiver card hover glow and an expandable model/privacy explanation adapt [EasyUI](https://easyui.site/components/). They retain the existing Motion dependency and honor reduced motion. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
+## Quality and inference security
+
+CI now runs TypeScript, lint, Node unit tests and production build. The server restricts Ollama to its configured endpoint rather than accepting arbitrary public URLs (SSRF protection); malformed or oversized audio is rejected. If real audio cannot be analyzed, the API returns HTTP 503 instead of inventing a category or confidence score. Synthetic reference examples are identified as demonstrations, and percentages are not medical probabilities.
+
+To select a remote/local Ollama target, configure `OLLAMA_BASE_URL` on the server; public client-supplied endpoints are not honored. Hosted use still requires authentication, rate limits and privacy review before processing recordings.
+
+
+### Medication logging safety
+
+A new install contains no fabricated medication records or dose presets. Adding a medication creates a schedule only; no dose is automatically recorded or reminder started. Dose logging requires an explicit confirmation. Existing local browser records remain intact. Reminders are not medical clearance to administer any drug, and this software does not verify pediatric dosing.

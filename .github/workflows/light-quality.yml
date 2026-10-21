@@ -14,5 +14,5 @@ jobs:
   verify:
     uses: thembaxx/thembaxx/.github/workflows/reusable-light-quality.yml@17f161fa19bd548ec77133938c9775b63bd5f5db
     with:
-      run_tests: false
-      run_build: false
+      run_tests: true
+      run_build: true
