@@ -1,0 +1,30 @@
+name: One-time verified dependency refresh
+on:
+  push:
+    branches:
+      - chore/deps-latest-stable-20261022
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - name: Upgrade to latest stable and regenerate lockfile
+        run: |
+          bun update --latest --ignore-scripts
+          bun install --frozen-lockfile --ignore-scripts
+      - name: Commit updates and remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/one-time-dependency-refresh.yml
+          git add package.json bun.lock
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(deps): update packages to latest stable and regenerate Bun lockfile'
+            git push
+          fi
