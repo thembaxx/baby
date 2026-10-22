@@ -10,6 +10,8 @@ const runtimeVersion: string = require(resolve(runtime, '../package.json')).vers
 const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_VOICE_RUNTIME_VERSION: runtimeVersion },
   reactStrictMode: true,
+  // Use Turbopack for production; the legacy Webpack hook is retained for dev.
+  turbopack: {},
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -26,7 +28,12 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   transpilePackages: ['motion'],
-  webpack: (config, {dev}) => {
+  webpack: (config, {dev, isServer}) => {
+    // Browser voice workers use onnxruntime-web; never bundle native Node bindings.
+    if (!isServer) {
+      config.resolve ??= {};
+      config.resolve.alias = { ...config.resolve.alias, 'onnxruntime-node': false };
+    }
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
     // Do not modify—file watching is disabled to prevent flickering during agent edits.
     if (dev && process.env.DISABLE_HMR === 'true') {
