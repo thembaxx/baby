@@ -10,6 +10,8 @@ const runtimeVersion: string = require(resolve(runtime, '../package.json')).vers
 const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_VOICE_RUNTIME_VERSION: runtimeVersion },
   reactStrictMode: true,
+  // Use Turbopack for production; the legacy Webpack hook is retained for dev.
+  turbopack: {},
   typescript: {
     ignoreBuildErrors: false,
   },
