@@ -1,20 +1,9 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useClientReady } from "./use-client-ready";
 import { readStoredValue } from "@/lib/storage";
-import {
-  hasVoicePack,
-  hasSavedVoiceFiles,
-  removeVoicePack,
-} from "@/lib/voice-cache";
+import { hasVoicePack, hasSavedVoiceFiles, removeVoicePack } from "@/lib/voice-cache";
 import { startVoiceJob, type VoiceJob } from "@/lib/voice-worker-client";
 import {
   DEFAULT_VOICE_PREFERENCES,
@@ -39,48 +28,30 @@ function deviceVoicesSnapshot() {
 function subscribeVoices(onChange: () => void) {
   if (!("speechSynthesis" in window)) return () => {};
   window.speechSynthesis.addEventListener("voiceschanged", onChange);
-  return () =>
-    window.speechSynthesis.removeEventListener("voiceschanged", onChange);
+  return () => window.speechSynthesis.removeEventListener("voiceschanged", onChange);
 }
-const aborted = (error: unknown) =>
-  error instanceof DOMException && error.name === "AbortError";
+const aborted = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
 
 export function useNurseryVoice() {
   const clientReady = useClientReady();
-  const voicesSnapshot = useSyncExternalStore(
-    subscribeVoices,
-    deviceVoicesSnapshot,
-    serverVoices,
-  );
-  const deviceVoices = useMemo<DeviceVoice[]>(
-    () => JSON.parse(voicesSnapshot),
-    [voicesSnapshot],
-  );
-  const [storedPreferences, setStoredPreferences] = useState<VoicePreferences>(
-    () => {
-      const saved = readStoredValue(
-        VOICE_PREFERENCES_KEY,
-        DEFAULT_VOICE_PREFERENCES,
-      );
-      return {
-        voice:
-          typeof saved.voice === "string" &&
-          (saved.voice.startsWith("device:") || isFreeVoice(saved.voice))
-            ? saved.voice
-            : "device:default",
-        rate:
-          typeof saved.rate === "number" && Number.isFinite(saved.rate)
-            ? Math.max(0.8, Math.min(1.2, saved.rate))
-            : 0.95,
-      };
-    },
-  );
-  const preferences = clientReady
-    ? storedPreferences
-    : DEFAULT_VOICE_PREFERENCES;
-  const [status, setStatus] = useState<"idle" | "preparing" | "speaking">(
-    "idle",
-  );
+  const voicesSnapshot = useSyncExternalStore(subscribeVoices, deviceVoicesSnapshot, serverVoices);
+  const deviceVoices = useMemo<DeviceVoice[]>(() => JSON.parse(voicesSnapshot), [voicesSnapshot]);
+  const [storedPreferences, setStoredPreferences] = useState<VoicePreferences>(() => {
+    const saved = readStoredValue(VOICE_PREFERENCES_KEY, DEFAULT_VOICE_PREFERENCES);
+    return {
+      voice:
+        typeof saved.voice === "string" &&
+        (saved.voice.startsWith("device:") || isFreeVoice(saved.voice))
+          ? saved.voice
+          : "device:default",
+      rate:
+        typeof saved.rate === "number" && Number.isFinite(saved.rate)
+          ? Math.max(0.8, Math.min(1.2, saved.rate))
+          : 0.95,
+    };
+  });
+  const preferences = clientReady ? storedPreferences : DEFAULT_VOICE_PREFERENCES;
+  const [status, setStatus] = useState<"idle" | "preparing" | "speaking">("idle");
   const [packReady, setPackReady] = useState(false);
   const [packStored, setPackStored] = useState(false);
   const [packChecking, setPackChecking] = useState(true);
@@ -105,9 +76,7 @@ export function useNurseryVoice() {
         setPackChecking(false);
         if (!ready)
           setStoredPreferences((value) =>
-            isFreeVoice(value.voice)
-              ? { ...value, voice: "device:default" }
-              : value,
+            isFreeVoice(value.voice) ? { ...value, voice: "device:default" } : value,
           );
       })
       .catch(() => {
@@ -121,10 +90,7 @@ export function useNurseryVoice() {
   useEffect(() => {
     if (!clientReady) return;
     try {
-      localStorage.setItem(
-        VOICE_PREFERENCES_KEY,
-        JSON.stringify(storedPreferences),
-      );
+      localStorage.setItem(VOICE_PREFERENCES_KEY, JSON.stringify(storedPreferences));
     } catch {
       /* Speech still works without persistent preferences. */
     }
@@ -163,12 +129,9 @@ export function useNurseryVoice() {
   const playbackContext = () => {
     const AudioContextClass =
       window.AudioContext ||
-      (window as Window & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass)
-      throw new Error(
-        "Downloaded voices are unavailable in this browser. Choose a device voice.",
-      );
+      throw new Error("Downloaded voices are unavailable in this browser. Choose a device voice.");
     return (contextRef.current ||= new AudioContextClass());
   };
   const preparePlayback = () => {
@@ -206,17 +169,11 @@ export function useNurseryVoice() {
         });
         speechJobRef.current = job;
         const result = await job.promise;
-        if (version !== speechVersion.current || result.type !== "audio")
-          return;
+        if (version !== speechVersion.current || result.type !== "audio") return;
         speechJobRef.current = null;
         const samples = new Float32Array(result.samples);
-        if (!samples.length)
-          throw new Error("No speech was generated. Please try again.");
-        const buffer = context.createBuffer(
-          1,
-          samples.length,
-          result.sampleRate,
-        );
+        if (!samples.length) throw new Error("No speech was generated. Please try again.");
+        const buffer = context.createBuffer(1, samples.length, result.sampleRate);
         buffer.copyToChannel(samples, 0);
         const source = context.createBufferSource();
         source.buffer = buffer;
@@ -239,9 +196,7 @@ export function useNurseryVoice() {
         const utterance = new SpeechSynthesisUtterance(text);
         const uri = voice.slice("device:".length);
         if (uri !== "default") {
-          const selected = window.speechSynthesis
-            .getVoices()
-            .find((item) => item.voiceURI === uri);
+          const selected = window.speechSynthesis.getVoices().find((item) => item.voiceURI === uri);
           if (selected) {
             utterance.voice = selected;
             utterance.lang = selected.lang;
@@ -271,9 +226,7 @@ export function useNurseryVoice() {
       speechJobRef.current = null;
       setStatus("idle");
       setError(
-        failure instanceof Error
-          ? failure.message
-          : "The voice could not play. Please try again.",
+        failure instanceof Error ? failure.message : "The voice could not play. Please try again.",
       );
     }
   };
@@ -311,8 +264,7 @@ export function useNurseryVoice() {
       setPackReady(true);
       setPackStored(true);
       setProgress(100);
-      if (navigator.storage?.persist)
-        void navigator.storage.persist().catch(() => {});
+      if (navigator.storage?.persist) void navigator.storage.persist().catch(() => {});
     } catch (failure) {
       // A cancelled or failed optional download must not leave hidden storage behind.
       await removeVoicePack().catch(() => {});
@@ -320,9 +272,7 @@ export function useNurseryVoice() {
       setProgress(0);
       if (!aborted(failure))
         setError(
-          failure instanceof Error
-            ? failure.message
-            : "The download failed. Please try again.",
+          failure instanceof Error ? failure.message : "The download failed. Please try again.",
         );
     } finally {
       downloadJobRef.current = null;
@@ -342,9 +292,7 @@ export function useNurseryVoice() {
       setPackStored(false);
       setProgress(0);
       setStoredPreferences((value) =>
-        isFreeVoice(value.voice)
-          ? { ...value, voice: "device:default" }
-          : value,
+        isFreeVoice(value.voice) ? { ...value, voice: "device:default" } : value,
       );
     } catch {
       setError("The voice pack could not be removed. Please try again.");

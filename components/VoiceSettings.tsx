@@ -18,10 +18,7 @@ const PREVIEW = "Take a gentle breath. We can go one little step at a time.";
 export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
   const active = voice.status !== "idle";
   return (
-    <section
-      className="settings-section voice-settings"
-      aria-labelledby="voice-title"
-    >
+    <section className="settings-section voice-settings" aria-labelledby="voice-title">
       <div className="settings-section-heading">
         <h2 id="voice-title">Reading voice</h2>
         <p>A familiar voice for calming steps and care updates. Always free.</p>
@@ -31,9 +28,7 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
           <span>Device voice</span>
           <select
             value={
-              voice.preferences.voice.startsWith("device:")
-                ? voice.preferences.voice
-                : "downloaded"
+              voice.preferences.voice.startsWith("device:") ? voice.preferences.voice : "downloaded"
             }
             onChange={(event) => voice.setVoice(event.target.value)}
           >
@@ -98,15 +93,10 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
         </summary>
         <div className="voice-pack-content">
           <p>
-            Heart, Bella, Michael, and Emma speak entirely on your device.
-            Download once to preview and use all four offline. Your text stays
-            here.
+            Heart, Bella, Michael, and Emma speak entirely on your device. Download once to preview
+            and use all four offline. Your text stays here.
           </p>
-          <div
-            className="voice-library"
-            role="group"
-            aria-label="Downloaded voices"
-          >
+          <div className="voice-library" role="group" aria-label="Downloaded voices">
             {FREE_VOICES.map((item) => (
               <div
                 key={item.id}
@@ -147,16 +137,8 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
                   ? "Preparing your voices…"
                   : `Downloading voices · ${voice.progress}%`}
               </span>
-              <progress
-                max={100}
-                value={voice.progress}
-                aria-labelledby="voice-download-label"
-              />
-              <button
-                type="button"
-                className="quiet-action"
-                onClick={voice.cancelDownload}
-              >
+              <progress max={100} value={voice.progress} aria-labelledby="voice-download-label" />
+              <button type="button" className="quiet-action" onClick={voice.cancelDownload}>
                 Cancel download
               </button>
             </div>
@@ -184,9 +166,7 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
               disabled={voice.packChecking || voice.removing}
             >
               <DownloadSimple size={18} aria-hidden="true" />
-              {voice.packChecking
-                ? "Checking saved voices…"
-                : "Download free voice pack"}
+              {voice.packChecking ? "Checking saved voices…" : "Download free voice pack"}
             </button>
           )}
           {voice.packStored && !voice.packReady && !voice.downloading && (
@@ -202,19 +182,11 @@ export function VoiceSettings({ voice }: { voice: NurseryVoice }) {
           )}
           <p className="voice-attribution">
             Powered by{" "}
-            <a
-              href="https://huggingface.co/hexgrad/Kokoro-82M"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank" rel="noreferrer">
               Kokoro
             </a>{" "}
             ·{" "}
-            <a
-              href="https://www.apache.org/licenses/LICENSE-2.0"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
               Apache 2.0
             </a>
             . Saved in this browser; clearing site data removes the download.

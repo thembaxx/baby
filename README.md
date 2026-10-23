@@ -56,25 +56,22 @@ Downloads require HTTPS (or localhost), Cache Storage, workers, WebAssembly, and
 
 ## Architecture Highlights
 
-- **`components/CryRecorder.tsx`**: 5.0-second browser `MediaRecorder` capture (`audio/webm`, `audio/mp4`, or 16 kHz PCM WAV) with real-time 24-bar Web Audio FFT spectrum visualization and 4 built-in pediatric Dunstan cry acoustic synthesizers (*Hunger "Neh"*, *Gas / Colic "Eairh"*, *Overtired "Owh"*, *Discomfort "Heh"*).
+- **`components/CryRecorder.tsx`**: 5.0-second browser `MediaRecorder` capture (`audio/webm`, `audio/mp4`, or 16 kHz PCM WAV) with real-time 24-bar Web Audio FFT spectrum visualization and 4 built-in pediatric Dunstan cry acoustic synthesizers (_Hunger "Neh"_, _Gas / Colic "Eairh"_, _Overtired "Owh"_, _Discomfort "Heh"_).
 - **`app/api/classify-cry/route.ts`**: Uses `generateObject` from `ai` and `createOpenAI` from `@ai-sdk/openai` pointed at `http://localhost:11434/v1` (`qwen2-audio`) with strict Zod schema validation (`CryAnalysisSchema`), plus automatic multimodal fallback.
 - **`components/AcousticOrb3D.tsx`**: 10-part procedural Three.js / WebGL PBR sculpture (`RoomEnvironment` PMREM reflections, `ACESFilmicToneMapping`, anisotropic brushed gold, clearcoat ceramic, refractive glass) with interactive raycasting on orbiting cry-axis nodes, exploded view slider (`0%–100%`), and Wavefront `.OBJ` export for Blender and Unity.
 - **`components/VoiceControlBar.tsx`, `hooks/useNurseryVoice.ts` & `lib/voice.worker.ts`**: Hands-free recognition commands, shared device speech, and optional local Kokoro speech. Voice preferences and offline downloads live in `components/VoiceSettings.tsx`.
 - **`components/OfflineModelManager.tsx`**: Optional in-browser `IndexedDB` quantized acoustic weights downloader (`navigator.storage.persist()`) and custom Ollama `Modelfile` exporter.
 - **Full PWA & SEO**: Includes `app/manifest.ts`, service worker (`/sw.js`), `192x192` / `512x512` / `maskable` / `apple-touch-icon.png` assets, `/llm.txt`, `/llms.txt`, `/robots.txt`, and `/sitemap.xml`.
 
-
 ## EasyUI UI adaptations
 
 The settings vibration-strength control, caregiver card hover glow and an expandable model/privacy explanation adapt [EasyUI](https://easyui.site/components/). They retain the existing Motion dependency and honor reduced motion. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
 
 ## Quality and inference security
 
 CI now runs TypeScript, lint, Node unit tests and production build. The server restricts Ollama to its configured endpoint rather than accepting arbitrary public URLs (SSRF protection); malformed or oversized audio is rejected. If real audio cannot be analyzed, the API returns HTTP 503 instead of inventing a category or confidence score. Synthetic reference examples are identified as demonstrations, and percentages are not medical probabilities.
 
 To select a remote/local Ollama target, configure `OLLAMA_BASE_URL` on the server; public client-supplied endpoints are not honored. Hosted use still requires authentication, rate limits and privacy review before processing recordings.
-
 
 ### Medication logging safety
 

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Pill,
   Clock,
@@ -13,17 +13,13 @@ import {
   Warning as AlertTriangle,
   ArrowCounterClockwise as RotateCcw,
   ShieldCheck,
-} from '@phosphor-icons/react';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  triggerNurseryHaptic,
-  type HapticIntensity,
-  type HapticEventPayload,
-} from '@/lib/haptics';
-import type { CaregiverRole } from '@/components/CaregiverHandoffCard';
+} from "@phosphor-icons/react";
+import { motion, AnimatePresence } from "motion/react";
+import { triggerNurseryHaptic, type HapticIntensity, type HapticEventPayload } from "@/lib/haptics";
+import type { CaregiverRole } from "@/components/CaregiverHandoffCard";
 
-import { useClientReady } from '@/hooks/use-client-ready';
-import { readStoredValue } from '@/lib/storage';
+import { useClientReady } from "@/hooks/use-client-ready";
+import { readStoredValue } from "@/lib/storage";
 
 export interface MedicationScheduleItem {
   id: string;
@@ -59,9 +55,9 @@ interface MedicationLogCardProps {
 const INITIAL_MEDICATIONS: MedicationScheduleItem[] = [];
 
 const ROLE_DISPLAY: Record<CaregiverRole, string> = {
-  parent: 'Parent',
-  grandparent: 'Grandparent',
-  babysitter: 'Babysitter',
+  parent: "Parent",
+  grandparent: "Grandparent",
+  babysitter: "Babysitter",
 };
 
 export function MedicationLogCard({
@@ -71,23 +67,23 @@ export function MedicationLogCard({
   onLogMedicationDose,
 }: MedicationLogCardProps) {
   const hasMounted = useClientReady();
-  const [storedMedications, setMedications] = useState<
-    MedicationScheduleItem[]
-  >(() => readStoredValue('nocturne_medications_v1', INITIAL_MEDICATIONS));
+  const [storedMedications, setMedications] = useState<MedicationScheduleItem[]>(() =>
+    readStoredValue("nocturne_medications_v1", INITIAL_MEDICATIONS),
+  );
   const medications = hasMounted ? storedMedications : INITIAL_MEDICATIONS;
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Add Medication Form State
-  const [newName, setNewName] = useState('');
-  const [newDosage, setNewDosage] = useState('');
+  const [newName, setNewName] = useState("");
+  const [newDosage, setNewDosage] = useState("");
   const [newFrequencyHours, setNewFrequencyHours] = useState<number>(24);
   const [newMaxDaily, setNewMaxDaily] = useState<number>(1);
-  const [newInstructions, setNewInstructions] = useState('');
+  const [newInstructions, setNewInstructions] = useState("");
 
   const saveMedications = useCallback((updated: MedicationScheduleItem[]) => {
     setMedications(updated);
     try {
-      localStorage.setItem('nocturne_medications_v1', JSON.stringify(updated));
+      localStorage.setItem("nocturne_medications_v1", JSON.stringify(updated));
     } catch {
       // Ignore storage errors
     }
@@ -111,7 +107,7 @@ export function MedicationLogCard({
 
           if (nextSecs === 0) {
             // Fire Recurring Medication Haptic Alert
-            triggerNurseryHaptic('medication-due', {
+            triggerNurseryHaptic("medication-due", {
               intensity: hapticIntensity,
               customLabel: `Medication Due: ${med.name} (${med.dosage}) — Every ${med.frequencyHours}h`,
               onVisualPulse,
@@ -138,23 +134,17 @@ export function MedicationLogCard({
       if (changed) saveMedications(nextList);
     }, 1000);
     return () => clearTimeout(timer);
-  }, [
-    hasMounted,
-    medications,
-    hapticIntensity,
-    onVisualPulse,
-    saveMedications,
-  ]);
+  }, [hasMounted, medications, hapticIntensity, onVisualPulse, saveMedications]);
 
   const formatDurationFromMins = (mins: number) => {
-    if (mins <= 0) return 'Just now';
+    if (mins <= 0) return "Just now";
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     return h > 0 ? `${h}h ${m}m ago` : `${m}m ago`;
   };
 
   const formatCountdown = (totalSeconds: number) => {
-    if (totalSeconds <= 0) return 'Due Now';
+    if (totalSeconds <= 0) return "Due Now";
     const hours = Math.floor(totalSeconds / 3600);
     const mins = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
@@ -163,17 +153,22 @@ export function MedicationLogCard({
       return `${hours}h ${mins}m`;
     }
     if (mins > 0) {
-      return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+      return `${mins}m ${secs.toString().padStart(2, "0")}s`;
     }
     return `${secs}s`;
   };
 
   // Administer a dose now, reset last administered time, and automatically restart the recurring reminder cycle
   const handleAdministerDose = (med: MedicationScheduleItem) => {
-    if (!window.confirm(`Confirm that ${med.dosage} of ${med.name} has already been administered, according to the clinician's instructions. This logs a past dose; it is not an instruction to give one.`)) return;
+    if (
+      !window.confirm(
+        `Confirm that ${med.dosage} of ${med.name} has already been administered, according to the clinician's instructions. This logs a past dose; it is not an instruction to give one.`,
+      )
+    )
+      return;
     const nowTime = new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     });
     const caregiverName = ROLE_DISPLAY[caregiverRole];
 
@@ -184,20 +179,17 @@ export function MedicationLogCard({
             lastAdministeredTime: nowTime,
             minutesSinceLastDose: 0,
             lastAdministeredBy: caregiverName,
-            dosesGivenToday: Math.min(
-              item.maxDailyDoses,
-              item.dosesGivenToday + 1
-            ),
+            dosesGivenToday: Math.min(item.maxDailyDoses, item.dosesGivenToday + 1),
             nextReminderSeconds: item.frequencyHours * 3600,
             isDueAlertActive: false,
           }
-        : item
+        : item,
     );
 
     saveMedications(updated);
 
-    triggerNurseryHaptic('care-logged', {
-      intensity: hapticIntensity === 'off' ? 'standard' : hapticIntensity,
+    triggerNurseryHaptic("care-logged", {
+      intensity: hapticIntensity === "off" ? "standard" : hapticIntensity,
       customLabel: `Dose Logged: ${med.name} (${med.dosage}) · Next reminder in ${med.frequencyHours}h`,
       onVisualPulse,
     });
@@ -222,12 +214,12 @@ export function MedicationLogCard({
             nextReminderSeconds: mins * 60,
             isDueAlertActive: false,
           }
-        : item
+        : item,
     );
     saveMedications(updated);
 
-    triggerNurseryHaptic('step-checked', {
-      intensity: hapticIntensity === 'off' ? 'standard' : hapticIntensity,
+    triggerNurseryHaptic("step-checked", {
+      intensity: hapticIntensity === "off" ? "standard" : hapticIntensity,
       customLabel: `${med.name} reminder snoozed for ${mins} minutes`,
       onVisualPulse,
     });
@@ -243,12 +235,12 @@ export function MedicationLogCard({
             nextReminderSeconds: 10,
             isDueAlertActive: false,
           }
-        : item
+        : item,
     );
     saveMedications(updated);
 
-    triggerNurseryHaptic('step-checked', {
-      intensity: hapticIntensity === 'off' ? 'standard' : hapticIntensity,
+    triggerNurseryHaptic("step-checked", {
+      intensity: hapticIntensity === "off" ? "standard" : hapticIntensity,
       customLabel: `10s Recurring Dose Timer started for ${med.name}`,
       onVisualPulse,
     });
@@ -261,9 +253,7 @@ export function MedicationLogCard({
     const updated = medications.map((item) => {
       if (item.id !== id) return item;
       const fallbackSecs =
-        item.nextReminderSeconds > 0
-          ? item.nextReminderSeconds
-          : item.frequencyHours * 3600;
+        item.nextReminderSeconds > 0 ? item.nextReminderSeconds : item.frequencyHours * 3600;
       return {
         ...item,
         recurringReminderEnabled: nextState,
@@ -275,10 +265,10 @@ export function MedicationLogCard({
     saveMedications(updated);
 
     if (target) {
-      triggerNurseryHaptic('step-checked', {
+      triggerNurseryHaptic("step-checked", {
         intensity: hapticIntensity,
         customLabel: `${target.name} recurring q${target.frequencyHours}h reminder ${
-          nextState ? 'enabled' : 'paused'
+          nextState ? "enabled" : "paused"
         }`,
         onVisualPulse,
       });
@@ -291,25 +281,34 @@ export function MedicationLogCard({
 
   const handleAddMedication = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newDosage.trim() || !Number.isInteger(newMaxDaily) || newMaxDaily < 1 || newMaxDaily > 24) return;
+    if (
+      !newName.trim() ||
+      !newDosage.trim() ||
+      !Number.isInteger(newMaxDaily) ||
+      newMaxDaily < 1 ||
+      newMaxDaily > 24
+    )
+      return;
     const created: MedicationScheduleItem = {
       id: `med-${Date.now()}`,
       name: newName.trim(),
       dosage: newDosage.trim(),
       frequencyHours: newFrequencyHours,
-      lastAdministeredTime: 'Not logged',
+      lastAdministeredTime: "Not logged",
       minutesSinceLastDose: 0,
-      lastAdministeredBy: '—',
+      lastAdministeredBy: "—",
       dosesGivenToday: 0,
       maxDailyDoses: newMaxDaily,
-      instructions: newInstructions.trim() || 'Confirm medication instructions with your healthcare professional.',
+      instructions:
+        newInstructions.trim() ||
+        "Confirm medication instructions with your healthcare professional.",
       recurringReminderEnabled: false,
       nextReminderSeconds: newFrequencyHours * 3600,
       isDueAlertActive: false,
     };
     saveMedications([created, ...medications]);
     setShowAddForm(false);
-    triggerNurseryHaptic('care-logged', {
+    triggerNurseryHaptic("care-logged", {
       intensity: hapticIntensity,
       customLabel: `Added ${created.name} to the log; no dose was recorded.`,
       onVisualPulse,
@@ -318,11 +317,10 @@ export function MedicationLogCard({
 
   const dueCount = medications.filter(
     (m) =>
-      m.recurringReminderEnabled && (
-        m.isDueAlertActive ||
+      m.recurringReminderEnabled &&
+      (m.isDueAlertActive ||
         m.minutesSinceLastDose >= m.frequencyHours * 60 ||
-        m.nextReminderSeconds === 0
-      )
+        m.nextReminderSeconds === 0),
   ).length;
 
   return (
@@ -341,17 +339,18 @@ export function MedicationLogCard({
               <span
                 className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
                   dueCount > 0
-                    ? 'bg-amber-400/15 border-amber-400/40 text-[var(--accent-primary)]'
-                    : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                    ? "bg-amber-400/15 border-amber-400/40 text-[var(--accent-primary)]"
+                    : "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
                 }`}
               >
                 {dueCount > 0
-                  ? `${dueCount} Dose${dueCount > 1 ? 's' : ''} Due`
-                  : 'No Reminders Due'}
+                  ? `${dueCount} Dose${dueCount > 1 ? "s" : ""} Due`
+                  : "No Reminders Due"}
               </span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Caregiver-entered history and reminders only. Always confirm every dose with a clinician.
+              Caregiver-entered history and reminders only. Always confirm every dose with a
+              clinician.
             </p>
           </div>
         </div>
@@ -362,7 +361,7 @@ export function MedicationLogCard({
           className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[var(--accent-primary)] hover:bg-amber-300 text-stone-950 text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>{showAddForm ? 'Close Form' : 'Add Medication'}</span>
+          <span>{showAddForm ? "Close Form" : "Add Medication"}</span>
         </button>
       </div>
 
@@ -378,7 +377,10 @@ export function MedicationLogCard({
             onSubmit={handleAddMedication}
             className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-3.5"
           >
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Only enter medication and dosing details prescribed by your child&apos;s clinician or pharmacist. Saving a schedule does not log administration or activate reminders.</p>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Only enter medication and dosing details prescribed by your child&apos;s clinician or
+              pharmacist. Saving a schedule does not log administration or activate reminders.
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-semibold text-[var(--text-secondary)] block mb-1">
@@ -417,7 +419,6 @@ export function MedicationLogCard({
                   onChange={(e) => {
                     const hrs = Number(e.target.value);
                     setNewFrequencyHours(hrs);
-
                   }}
                   className="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 >
@@ -435,7 +436,15 @@ export function MedicationLogCard({
               <label className="text-[11px] font-semibold text-[var(--text-secondary)] block mb-1">
                 Prescribed maximum doses per day
               </label>
-              <input type="number" min={1} max={24} required value={newMaxDaily} onChange={event => setNewMaxDaily(Number(event.target.value))} className="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]" />
+              <input
+                type="number"
+                min={1}
+                max={24}
+                required
+                value={newMaxDaily}
+                onChange={(event) => setNewMaxDaily(Number(event.target.value))}
+                className="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]"
+              />
             </div>
             <div>
               <label className="text-[11px] font-semibold text-[var(--text-secondary)] block mb-1">
@@ -471,19 +480,23 @@ export function MedicationLogCard({
 
       {/* Medication Cards List */}
       <div className="flex flex-col gap-3.5">
-        {medications.length === 0 && <p role="status" className="text-sm text-[var(--text-secondary)] rounded-2xl bg-[var(--bg-canvas)] p-4">No medications logged. Only add a schedule supplied by a healthcare professional.</p>}
+        {medications.length === 0 && (
+          <p
+            role="status"
+            className="text-sm text-[var(--text-secondary)] rounded-2xl bg-[var(--bg-canvas)] p-4"
+          >
+            No medications logged. Only add a schedule supplied by a healthcare professional.
+          </p>
+        )}
         <AnimatePresence initial={false}>
           {medications.map((med) => {
             const intervalMins = med.frequencyHours * 60;
-            const isReadyOrDue = med.recurringReminderEnabled && (
-              med.isDueAlertActive ||
-              med.minutesSinceLastDose >= intervalMins ||
-              med.nextReminderSeconds === 0
-            );
-            const minsUntilSafe = Math.max(
-              0,
-              intervalMins - med.minutesSinceLastDose
-            );
+            const isReadyOrDue =
+              med.recurringReminderEnabled &&
+              (med.isDueAlertActive ||
+                med.minutesSinceLastDose >= intervalMins ||
+                med.nextReminderSeconds === 0);
+            const minsUntilSafe = Math.max(0, intervalMins - med.minutesSinceLastDose);
 
             return (
               <motion.div
@@ -495,8 +508,8 @@ export function MedicationLogCard({
                 transition={{ duration: 0.2 }}
                 className={`p-4 rounded-2xl border transition-colors flex flex-col gap-3 ${
                   isReadyOrDue
-                    ? 'bg-amber-400/10 border-amber-400/45'
-                    : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)]'
+                    ? "bg-amber-400/10 border-amber-400/45"
+                    : "bg-[var(--bg-canvas)] border-[var(--border-subtle)]"
                 }`}
               >
                 {/* Top Row: Name, Dosage Pill, Frequency Pill, Safety Badge */}
@@ -529,11 +542,7 @@ export function MedicationLogCard({
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-semibold text-emerald-300">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>
-                          Reminder in{' '}
-                          {formatDurationFromMins(minsUntilSafe).replace(
-                            ' ago',
-                            ''
-                          )}
+                          Reminder in {formatDurationFromMins(minsUntilSafe).replace(" ago", "")}
                         </span>
                       </span>
                     )}
@@ -570,9 +579,7 @@ export function MedicationLogCard({
                     <span className="text-xs font-bold text-[var(--text-primary)] mt-0.5">
                       {med.lastAdministeredBy}
                     </span>
-                    <span className="text-[11px] text-[var(--text-secondary)]">
-                      User entered
-                    </span>
+                    <span className="text-[11px] text-[var(--text-secondary)]">User entered</span>
                   </div>
 
                   <div className="px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
@@ -594,14 +601,14 @@ export function MedicationLogCard({
                     <span
                       className={`text-xs font-bold font-mono tabular-nums mt-0.5 ${
                         !med.recurringReminderEnabled
-                          ? 'text-[var(--text-secondary)]'
+                          ? "text-[var(--text-secondary)]"
                           : isReadyOrDue
-                            ? 'text-[var(--accent-primary)]'
-                            : 'text-emerald-300'
+                            ? "text-[var(--accent-primary)]"
+                            : "text-emerald-300"
                       }`}
                     >
                       {!med.recurringReminderEnabled
-                        ? 'Paused'
+                        ? "Paused"
                         : formatCountdown(med.nextReminderSeconds)}
                     </span>
                     <span className="text-[11px] text-[var(--text-secondary)]">
@@ -618,8 +625,8 @@ export function MedicationLogCard({
                       onClick={() => handleAdministerDose(med)}
                       className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
                         isReadyOrDue
-                          ? 'bg-[var(--accent-primary)] hover:bg-amber-300 text-stone-950 shadow-sm'
-                          : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)]'
+                          ? "bg-[var(--accent-primary)] hover:bg-amber-300 text-stone-950 shadow-sm"
+                          : "bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
                       }`}
                     >
                       <CheckCircle2 className="w-4 h-4" />
@@ -646,15 +653,15 @@ export function MedicationLogCard({
                       onClick={() => handleToggleRecurringReminder(med.id)}
                       className={`min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                         med.recurringReminderEnabled
-                          ? 'bg-[var(--bg-surface)] border-amber-400/30 text-[var(--text-primary)]'
-                          : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)]'
+                          ? "bg-[var(--bg-surface)] border-amber-400/30 text-[var(--text-primary)]"
+                          : "bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                       }`}
                     >
                       <Bell className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                       <span>
                         {med.recurringReminderEnabled
-                          ? 'Recurring Alert: ON'
-                          : 'Recurring Alert: OFF'}
+                          ? "Recurring Alert: ON"
+                          : "Recurring Alert: OFF"}
                       </span>
                     </button>
                   </div>
@@ -673,11 +680,8 @@ export function MedicationLogCard({
                     <button
                       type="button"
                       onClick={() =>
-                        triggerNurseryHaptic('medication-due', {
-                          intensity:
-                            hapticIntensity === 'off'
-                              ? 'standard'
-                              : hapticIntensity,
+                        triggerNurseryHaptic("medication-due", {
+                          intensity: hapticIntensity === "off" ? "standard" : hapticIntensity,
                           customLabel: `Medication Haptic Test: ${med.name} (${med.dosage})`,
                           onVisualPulse,
                         })
@@ -696,12 +700,11 @@ export function MedicationLogCard({
                   <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)] pt-0.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span>
-                      Double-Dose Protection: Last dose was given by{' '}
+                      Double-Dose Protection: Last dose was given by{" "}
                       <strong className="text-[var(--text-primary)]">
                         {med.lastAdministeredBy}
-                      </strong>{' '}
-                      at {med.lastAdministeredTime}. Next recurring reminder
-                      fires automatically.
+                      </strong>{" "}
+                      at {med.lastAdministeredTime}. Next recurring reminder fires automatically.
                     </span>
                   </div>
                 )}

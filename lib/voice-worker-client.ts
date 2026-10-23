@@ -21,11 +21,7 @@ export function startVoiceJob(
     };
     worker.onerror = () => {
       worker.terminate();
-      reject(
-        new Error(
-          "This voice could not load. Try again or choose a device voice.",
-        ),
-      );
+      reject(new Error("This voice could not load. Try again or choose a device voice."));
     };
     worker.postMessage(request);
   });

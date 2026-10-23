@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
   CaretDown as ChevronDown,
   CaretUp as ChevronUp,
@@ -11,11 +11,11 @@ import {
   Cube as Box,
   Stack as Layers,
   Camera,
-} from '@phosphor-icons/react';
+} from "@phosphor-icons/react";
 
-export type FinishPreset = 'gold' | 'lunar' | 'crystal' | 'clay';
-export type CameraPreset = 'studio' | 'zenith' | 'macro';
-export type CryPresetKey = 'hunger' | 'gas' | 'overtired' | 'discomfort';
+export type FinishPreset = "gold" | "lunar" | "crystal" | "clay";
+export type CameraPreset = "studio" | "zenith" | "macro";
+export type CryPresetKey = "hunger" | "gas" | "overtired" | "discomfort";
 
 interface AcousticOrb3DProps {
   activeCategory: string;
@@ -24,7 +24,7 @@ interface AcousticOrb3DProps {
   analyzing: boolean;
   audioEnergy?: number;
   isVisible?: boolean;
-  themeMode: 'nocturne' | 'lunar' | 'daylight' | 'redlight';
+  themeMode: "nocturne" | "lunar" | "daylight" | "redlight";
   onSelectCryNode?: (preset: CryPresetKey) => void;
 }
 
@@ -44,36 +44,36 @@ const SATELLITE_SPECS: {
   yOffset: number;
 }[] = [
   {
-    key: 'hunger',
+    key: "hunger",
     label: 'Hunger ("Neh")',
-    freq: '420 Hz',
+    freq: "420 Hz",
     color: 0xfbbf24,
     orbitRadius: 1.85,
     speed: 0.55,
     yOffset: 0.28,
   },
   {
-    key: 'gas',
+    key: "gas",
     label: 'Gas / Colic ("Eairh")',
-    freq: '610 Hz',
+    freq: "610 Hz",
     color: 0xf43f5e,
     orbitRadius: 2.05,
     speed: 0.72,
     yOffset: -0.22,
   },
   {
-    key: 'overtired',
+    key: "overtired",
     label: 'Overtired ("Owh")',
-    freq: '340 Hz',
+    freq: "340 Hz",
     color: 0x38bdf8,
     orbitRadius: 1.95,
     speed: 0.42,
     yOffset: 0.35,
   },
   {
-    key: 'discomfort',
+    key: "discomfort",
     label: 'Discomfort ("Heh")',
-    freq: '480 Hz',
+    freq: "480 Hz",
     color: 0xa855f7,
     orbitRadius: 1.75,
     speed: 0.64,
@@ -82,15 +82,15 @@ const SATELLITE_SPECS: {
 ];
 
 function createContactShadowTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 256;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (ctx) {
     const grad = ctx.createRadialGradient(128, 128, 12, 128, 128, 120);
-    grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
-    grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.22)');
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(0, "rgba(0, 0, 0, 0.65)");
+    grad.addColorStop(0.55, "rgba(0, 0, 0, 0.22)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 256, 256);
   }
@@ -112,8 +112,8 @@ export function AcousticOrb3D({
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
 
   const [exploded, setExploded] = useState(0);
-  const [finish, setFinish] = useState<FinishPreset>('gold');
-  const [camPreset, setCamPreset] = useState<CameraPreset>('studio');
+  const [finish, setFinish] = useState<FinishPreset>("gold");
+  const [camPreset, setCamPreset] = useState<CameraPreset>("studio");
   const [hudCollapsed, setHudCollapsed] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [webglFallback, setWebglFallback] = useState(false);
@@ -122,13 +122,13 @@ export function AcousticOrb3D({
   const stateRef = useRef({
     isVisible: true,
     exploded: 0,
-    finish: 'gold' as FinishPreset,
-    camPreset: 'studio' as CameraPreset,
+    finish: "gold" as FinishPreset,
+    camPreset: "studio" as CameraPreset,
     isRecording: false,
     analyzing: false,
     audioEnergy: 0.2,
-    activeCategory: 'Gas / Colic',
-    themeMode: 'nocturne' as 'nocturne' | 'lunar' | 'daylight' | 'redlight',
+    activeCategory: "Gas / Colic",
+    themeMode: "nocturne" as "nocturne" | "lunar" | "daylight" | "redlight",
   });
 
   useEffect(() => {
@@ -168,18 +168,15 @@ export function AcousticOrb3D({
 
     let renderer: THREE.WebGLRenderer;
     try {
-      const isHeadless =
-        navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent);
+      const isHeadless = navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent);
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        powerPreference: 'high-performance',
+        powerPreference: "high-performance",
       });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.12;
-      renderer.setPixelRatio(
-        isHeadless ? 1 : Math.min(window.devicePixelRatio, 2)
-      );
+      renderer.setPixelRatio(isHeadless ? 1 : Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = !isHeadless;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     } catch {
@@ -190,7 +187,7 @@ export function AcousticOrb3D({
     const width = mount.clientWidth || 640;
     const height = mount.clientHeight || 420;
     renderer.setSize(width, height);
-    mount.innerHTML = '';
+    mount.innerHTML = "";
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -200,10 +197,7 @@ export function AcousticOrb3D({
 
     // Mandatory Studio Environment Reflection (RoomEnvironment + PMREMGenerator)
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const envTexture = pmremGenerator.fromScene(
-      new RoomEnvironment(),
-      0.04
-    ).texture;
+    const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envTexture;
     pmremGenerator.dispose();
 
@@ -294,18 +288,9 @@ export function AcousticOrb3D({
       roughness: 0.74,
     });
 
-    const ring1 = new THREE.Mesh(
-      new THREE.TorusGeometry(1.38, 0.036, 24, 96),
-      ring1Mat
-    );
-    const ring2 = new THREE.Mesh(
-      new THREE.TorusGeometry(1.18, 0.03, 24, 96),
-      ring2Mat
-    );
-    const ring3 = new THREE.Mesh(
-      new THREE.TorusGeometry(1.02, 0.024, 20, 72),
-      ring3Mat
-    );
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.38, 0.036, 24, 96), ring1Mat);
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.18, 0.03, 24, 96), ring2Mat);
+    const ring3 = new THREE.Mesh(new THREE.TorusGeometry(1.02, 0.024, 20, 72), ring3Mat);
     ring1.position.y = 0.35;
     ring2.position.y = 0.35;
     ring3.position.y = 0.35;
@@ -342,17 +327,11 @@ export function AcousticOrb3D({
       metalness: 0.4,
       roughness: 0.65,
     });
-    const plinth = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.15, 1.32, 0.22, 48),
-      plinthMat
-    );
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.32, 0.22, 48), plinthMat);
     plinth.position.y = -1.05;
     plinth.receiveShadow = true;
 
-    const collarRing = new THREE.Mesh(
-      new THREE.TorusGeometry(1.16, 0.028, 16, 64),
-      ring1Mat
-    );
+    const collarRing = new THREE.Mesh(new THREE.TorusGeometry(1.16, 0.028, 16, 64), ring1Mat);
     collarRing.rotation.x = Math.PI / 2;
     collarRing.position.y = -0.94;
     baseGroup.add(plinth, collarRing);
@@ -370,7 +349,7 @@ export function AcousticOrb3D({
         polygonOffset: true,
         polygonOffsetFactor: -1,
         polygonOffsetUnits: -1,
-      })
+      }),
     );
     shadowPlane.rotation.x = -Math.PI / 2;
     shadowPlane.position.y = -1.15;
@@ -380,11 +359,7 @@ export function AcousticOrb3D({
     const particleCount = 48;
     const particleGeo = new THREE.IcosahedronGeometry(0.026, 0);
     const particleMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-    const particleInstanced = new THREE.InstancedMesh(
-      particleGeo,
-      particleMat,
-      particleCount
-    );
+    const particleInstanced = new THREE.InstancedMesh(particleGeo, particleMat, particleCount);
     const particleSeeds: {
       angle: number;
       radius: number;
@@ -398,11 +373,7 @@ export function AcousticOrb3D({
       const y = -0.5 + ((i * 13) % 20) * 0.08;
       particleSeeds.push({ angle, radius, y, speed: 0.15 + (i % 5) * 0.06 });
 
-      _dummyObj.position.set(
-        Math.cos(angle) * radius,
-        y,
-        Math.sin(angle) * radius
-      );
+      _dummyObj.position.set(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
       _dummyObj.updateMatrix();
       particleInstanced.setMatrixAt(i, _dummyObj.matrix);
       _tempColor.setHex(i % 2 === 0 ? 0xfbbf24 : 0x38bdf8);
@@ -442,10 +413,10 @@ export function AcousticOrb3D({
 
       if (hits.length > 0) {
         const hitObj = hits[0].object;
-        renderer.domElement.style.cursor = 'pointer';
+        renderer.domElement.style.cursor = "pointer";
         setHoveredNode(hitObj.userData.label || null);
       } else {
-        renderer.domElement.style.cursor = 'grab';
+        renderer.domElement.style.cursor = "grab";
         setHoveredNode(null);
       }
     };
@@ -457,7 +428,7 @@ export function AcousticOrb3D({
       if (hits.length > 0) {
         const presetKey = hits[0].object.userData.presetKey as CryPresetKey;
         if (presetKey && callbackRef.current) {
-          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
             navigator.vibrate(18);
           }
           callbackRef.current(presetKey);
@@ -465,15 +436,15 @@ export function AcousticOrb3D({
       }
     };
 
-    renderer.domElement.addEventListener('pointermove', handlePointerMove);
-    renderer.domElement.addEventListener('pointerdown', handlePointerDown);
+    renderer.domElement.addEventListener("pointermove", handlePointerMove);
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
 
     // Handle WebGL context loss gracefully
     const handleContextLost = (e: Event) => {
       e.preventDefault();
       setWebglFallback(true);
     };
-    renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
+    renderer.domElement.addEventListener("webglcontextlost", handleContextLost);
 
     // Resize Observer
     const handleResize = () => {
@@ -484,12 +455,10 @@ export function AcousticOrb3D({
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(mount);
-    const motionPreference = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    );
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     // Animation Loop with Exponential Damping
     const clock = new THREE.Clock();
@@ -509,11 +478,11 @@ export function AcousticOrb3D({
 
       // Sync theme background color smoothly
       const targetBgHex =
-        st.themeMode === 'daylight'
+        st.themeMode === "daylight"
           ? 0xf5f2eb
-          : st.themeMode === 'lunar'
+          : st.themeMode === "lunar"
             ? 0x090d16
-            : st.themeMode === 'redlight'
+            : st.themeMode === "redlight"
               ? 0x070102
               : 0x0c0a09;
       _tempColor.setHex(targetBgHex);
@@ -525,27 +494,22 @@ export function AcousticOrb3D({
       }
 
       // Smoothly damp exploded view separation
-      currentExploded = THREE.MathUtils.damp(
-        currentExploded,
-        st.exploded,
-        6,
-        delta
-      );
+      currentExploded = THREE.MathUtils.damp(currentExploded, st.exploded, 6, delta);
 
       // Update finish properties based on selected swatch or Red Light mode
-      if (st.themeMode === 'redlight') {
+      if (st.themeMode === "redlight") {
         coreMat.color.setHex(0xf43f5e);
         coreMat.metalness = 0.75;
         coreMat.roughness = 0.2;
-      } else if (st.finish === 'gold') {
+      } else if (st.finish === "gold") {
         coreMat.color.setHex(0xfbbf24);
         coreMat.metalness = 0.88;
         coreMat.roughness = 0.16;
-      } else if (st.finish === 'lunar') {
+      } else if (st.finish === "lunar") {
         coreMat.color.setHex(0x38bdf8);
         coreMat.metalness = 0.65;
         coreMat.roughness = 0.22;
-      } else if (st.finish === 'crystal') {
+      } else if (st.finish === "crystal") {
         coreMat.color.setHex(0xf472b6);
         coreMat.metalness = 0.2;
         coreMat.roughness = 0.06;
@@ -593,7 +557,7 @@ export function AcousticOrb3D({
         sat.position.set(
           Math.cos(angle) * rad,
           0.35 + spec.yOffset + Math.sin(elapsed * 1.5 + idx) * 0.1,
-          Math.sin(angle) * rad
+          Math.sin(angle) * rad,
         );
         sat.rotation.y += delta * 1.2;
         sat.rotation.x += delta * 0.8;
@@ -607,7 +571,7 @@ export function AcousticOrb3D({
         _dummyObj.position.set(
           Math.cos(a) * r,
           seed.y + Math.sin(elapsed * 1.2 + i) * 0.08,
-          Math.sin(a) * r
+          Math.sin(a) * r,
         );
         _dummyObj.rotation.set(elapsed * 0.5, elapsed * 0.3, 0);
         _dummyObj.updateMatrix();
@@ -616,9 +580,9 @@ export function AcousticOrb3D({
       particleInstanced.instanceMatrix.needsUpdate = true;
 
       // Smooth Camera Preset Damping
-      if (st.camPreset === 'zenith') {
+      if (st.camPreset === "zenith") {
         _targetCamPos.set(0, 4.8, 0.8);
-      } else if (st.camPreset === 'macro') {
+      } else if (st.camPreset === "macro") {
         _targetCamPos.set(0, 0.45, 2.55);
       } else {
         _targetCamPos.set(0, 0.8, 4.6);
@@ -634,13 +598,10 @@ export function AcousticOrb3D({
     return () => {
       cancelAnimationFrame(animId);
       resizeObserver.disconnect();
-      window.removeEventListener('resize', handleResize);
-      renderer.domElement.removeEventListener('pointermove', handlePointerMove);
-      renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
-      renderer.domElement.removeEventListener(
-        'webglcontextlost',
-        handleContextLost
-      );
+      window.removeEventListener("resize", handleResize);
+      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
+      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("webglcontextlost", handleContextLost);
       controls.dispose();
       envTexture.dispose();
       shadowTex.dispose();
@@ -653,9 +614,8 @@ export function AcousticOrb3D({
     const scene = sceneRef.current;
     if (!scene) return;
 
-    let objText =
-      '# Kora 3D Acoustic Resonance Totem — Procedural Export for Blender / Unity\n';
-    objText += 'o KoraAcousticTotem\n';
+    let objText = "# Kora 3D Acoustic Resonance Totem — Procedural Export for Blender / Unity\n";
+    objText += "o KoraAcousticTotem\n";
     let vertexOffset = 1;
 
     scene.traverse((child) => {
@@ -665,9 +625,7 @@ export function AcousticOrb3D({
         if (!posAttr) return;
 
         for (let i = 0; i < posAttr.count; i++) {
-          _tempVec3
-            .fromBufferAttribute(posAttr, i)
-            .applyMatrix4(child.matrixWorld);
+          _tempVec3.fromBufferAttribute(posAttr, i).applyMatrix4(child.matrixWorld);
           objText += `v ${_tempVec3.x.toFixed(4)} ${_tempVec3.y.toFixed(4)} ${_tempVec3.z.toFixed(4)}\n`;
         }
 
@@ -684,11 +642,11 @@ export function AcousticOrb3D({
       }
     });
 
-    const blob = new Blob([objText], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([objText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'kora_acoustic_totem_blender_unity.obj';
+    a.download = "kora_acoustic_totem_blender_unity.obj";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -721,19 +679,13 @@ export function AcousticOrb3D({
           <span aria-hidden="true" className="mx-1.5 text-stone-500">
             ·
           </span>
-          <span className="font-mono tabular-nums text-amber-300">
-            {confidenceScore}%
-          </span>
+          <span className="font-mono tabular-nums text-amber-300">{confidenceScore}%</span>
         </div>
         <div className="text-[11px] text-stone-400">
           {hoveredNode ? (
-            <span className="text-amber-300 font-medium">
-              Click 3D Node to Test: {hoveredNode}
-            </span>
+            <span className="text-amber-300 font-medium">Click 3D Node to Test: {hoveredNode}</span>
           ) : (
-            <span>
-              Drag to orbit 360° · Click any orbiting 3D satellite node to test
-            </span>
+            <span>Drag to orbit 360° · Click any orbiting 3D satellite node to test</span>
           )}
         </div>
       </div>
@@ -802,10 +754,10 @@ export function AcousticOrb3D({
               <div className="flex items-center gap-1">
                 {(
                   [
-                    { id: 'gold', label: 'Gold' },
-                    { id: 'lunar', label: 'Lunar' },
-                    { id: 'crystal', label: 'Glass' },
-                    { id: 'clay', label: 'Clay' },
+                    { id: "gold", label: "Gold" },
+                    { id: "lunar", label: "Lunar" },
+                    { id: "crystal", label: "Glass" },
+                    { id: "clay", label: "Clay" },
                   ] as const
                 ).map((item) => (
                   <button
@@ -814,8 +766,8 @@ export function AcousticOrb3D({
                     onClick={() => setFinish(item.id)}
                     className={`flex-1 min-h-[32px] px-2 py-1 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap ${
                       finish === item.id
-                        ? 'bg-amber-400 text-stone-950 font-semibold'
-                        : 'bg-stone-900 text-stone-300 hover:bg-stone-800'
+                        ? "bg-amber-400 text-stone-950 font-semibold"
+                        : "bg-stone-900 text-stone-300 hover:bg-stone-800"
                     }`}
                   >
                     {item.label}
@@ -833,9 +785,9 @@ export function AcousticOrb3D({
               <div className="flex items-center gap-1">
                 {(
                   [
-                    { id: 'studio', label: 'Orbit' },
-                    { id: 'macro', label: 'Macro' },
-                    { id: 'zenith', label: 'Zenith' },
+                    { id: "studio", label: "Orbit" },
+                    { id: "macro", label: "Macro" },
+                    { id: "zenith", label: "Zenith" },
                   ] as const
                 ).map((cam) => (
                   <button
@@ -844,8 +796,8 @@ export function AcousticOrb3D({
                     onClick={() => setCamPreset(cam.id)}
                     className={`flex-1 min-h-[32px] px-2 py-1 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap ${
                       camPreset === cam.id
-                        ? 'bg-stone-800 text-amber-300 border border-amber-400/40'
-                        : 'bg-stone-900 text-stone-400 hover:text-stone-200'
+                        ? "bg-stone-800 text-amber-300 border border-amber-400/40"
+                        : "bg-stone-900 text-stone-400 hover:text-stone-200"
                     }`}
                   >
                     {cam.label}

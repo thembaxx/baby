@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Handshake as HeartHandshake,
   PencilSimple as Edit3,
@@ -9,13 +9,13 @@ import {
   Baby,
   Clock,
   Sparkle as Sparkles,
-} from '@phosphor-icons/react';
+} from "@phosphor-icons/react";
 
-import { useClientReady } from '@/hooks/use-client-ready';
-import { readStoredValue } from '@/lib/storage';
-import { SpotlightCard } from './easyui/SpotlightCard';
+import { useClientReady } from "@/hooks/use-client-ready";
+import { readStoredValue } from "@/lib/storage";
+import { SpotlightCard } from "./easyui/SpotlightCard";
 
-export type CaregiverRole = 'parent' | 'grandparent' | 'babysitter';
+export type CaregiverRole = "parent" | "grandparent" | "babysitter";
 
 interface CaregiverProfile {
   babyName: string;
@@ -26,12 +26,11 @@ interface CaregiverProfile {
 }
 
 const DEFAULT_PROFILE: CaregiverProfile = {
-  babyName: 'Maya',
-  ageLabel: '8 weeks old',
-  bottleInstructions:
-    '120 ml (4 oz) warm breastmilk or formula · Burp halfway through',
-  favoriteSoothing: 'Hold upright on left shoulder + play Womb Brown Noise',
-  emergencyContact: 'Mom & Dad · (555) 234-8910',
+  babyName: "Maya",
+  ageLabel: "8 weeks old",
+  bottleInstructions: "120 ml (4 oz) warm breastmilk or formula · Burp halfway through",
+  favoriteSoothing: "Hold upright on left shoulder + play Womb Brown Noise",
+  emergencyContact: "Mom & Dad · (555) 234-8910",
 };
 
 interface CaregiverHandoffCardProps {
@@ -47,7 +46,7 @@ export function CaregiverHandoffCard({
 }: CaregiverHandoffCardProps) {
   const clientReady = useClientReady();
   const [storedProfile, setProfile] = useState<CaregiverProfile>(() =>
-    readStoredValue('kora_caregiver_profile_v1', DEFAULT_PROFILE)
+    readStoredValue("kora_caregiver_profile_v1", DEFAULT_PROFILE),
   );
   const profile = clientReady ? storedProfile : DEFAULT_PROFILE;
   const [isEditing, setIsEditing] = useState(false);
@@ -56,10 +55,7 @@ export function CaregiverHandoffCard({
     e.preventDefault();
     setIsEditing(false);
     try {
-      localStorage.setItem(
-        'kora_caregiver_profile_v1',
-        JSON.stringify(profile)
-      );
+      localStorage.setItem("kora_caregiver_profile_v1", JSON.stringify(profile));
     } catch {
       // Ignore storage errors
     }
@@ -97,9 +93,7 @@ export function CaregiverHandoffCard({
             <span>Next Feeding Window</span>
           </div>
           <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">
-            {nextFeedInMins === 0
-              ? 'Ready for a feed now'
-              : `In about ${nextFeedInMins} minutes`}
+            {nextFeedInMins === 0 ? "Ready for a feed now" : `In about ${nextFeedInMins} minutes`}
           </p>
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             {profile.bottleInstructions}
@@ -132,7 +126,7 @@ export function CaregiverHandoffCard({
                 className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
               >
                 <Edit3 className="w-3 h-3" />
-                <span>{isEditing ? 'Cancel' : 'Edit Notes'}</span>
+                <span>{isEditing ? "Cancel" : "Edit Notes"}</span>
               </button>
             </div>
             <p className="text-sm font-bold text-[var(--text-primary)] mt-1 tabular-nums">
@@ -152,15 +146,11 @@ export function CaregiverHandoffCard({
           className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] grid grid-cols-1 sm:grid-cols-2 gap-3"
         >
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">
-              Baby Name
-            </label>
+            <label className="text-xs font-medium text-[var(--text-secondary)]">Baby Name</label>
             <input
               type="text"
               value={profile.babyName}
-              onChange={(e) =>
-                setProfile({ ...profile, babyName: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, babyName: e.target.value })}
               className="min-h-[42px] px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)]"
             />
           </div>
@@ -171,9 +161,7 @@ export function CaregiverHandoffCard({
             <input
               type="text"
               value={profile.emergencyContact}
-              onChange={(e) =>
-                setProfile({ ...profile, emergencyContact: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, emergencyContact: e.target.value })}
               className="min-h-[42px] px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)]"
             />
           </div>
@@ -184,9 +172,7 @@ export function CaregiverHandoffCard({
             <input
               type="text"
               value={profile.bottleInstructions}
-              onChange={(e) =>
-                setProfile({ ...profile, bottleInstructions: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, bottleInstructions: e.target.value })}
               className="min-h-[42px] px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)]"
             />
           </div>
@@ -197,9 +183,7 @@ export function CaregiverHandoffCard({
             <input
               type="text"
               value={profile.favoriteSoothing}
-              onChange={(e) =>
-                setProfile({ ...profile, favoriteSoothing: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, favoriteSoothing: e.target.value })}
               className="min-h-[42px] px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)]"
             />
           </div>

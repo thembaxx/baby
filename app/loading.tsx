@@ -3,8 +3,8 @@ export default function Loading() {
     <div
       className="min-h-dvh w-full flex flex-col justify-between p-6 transition-colors"
       style={{
-        backgroundColor: 'var(--bg-canvas, #0c0a09)',
-        color: 'var(--text-primary, #f5f5f4)',
+        backgroundColor: "var(--bg-canvas, #0c0a09)",
+        color: "var(--text-primary, #f5f5f4)",
       }}
     >
       <div className="w-full max-w-7xl mx-auto flex items-center justify-between py-3 border-b border-white/[0.08]">

@@ -1,8 +1,7 @@
 export const VOICE_PACK_CACHE = "kora-voices-v1";
 export const VOICE_PACK_MARKER = "/__kora/voice-pack-v1.json";
 export const VOICE_VECTOR_CACHE = "kokoro-voices";
-export const VOICE_RUNTIME_VERSION =
-  process.env.NEXT_PUBLIC_VOICE_RUNTIME_VERSION;
+export const VOICE_RUNTIME_VERSION = process.env.NEXT_PUBLIC_VOICE_RUNTIME_VERSION;
 export const VOICE_RUNTIME_BASE = `/voice-runtime/${VOICE_RUNTIME_VERSION}/`;
 export const VOICE_RUNTIME_FILES = [
   "ort-wasm-simd-threaded.jsep.mjs",

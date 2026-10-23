@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { DownloadSimple as Download, DeviceMobile as Smartphone, WifiSlash as WifiOff, Check } from '@phosphor-icons/react';
-import { usePWAInstall, useOnlineStatus } from '@/hooks/usePWAInstall';
+import React, { useState } from "react";
+import {
+  DownloadSimple as Download,
+  DeviceMobile as Smartphone,
+  WifiSlash as WifiOff,
+  Check,
+} from "@phosphor-icons/react";
+import { usePWAInstall, useOnlineStatus } from "@/hooks/usePWAInstall";
 
 export function PWAInstallButton() {
-  const { isInstallable, isInstalled, isIOS, swRegistered, install } =
-    usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, swRegistered, install } = usePWAInstall();
   const [showGuide, setShowGuide] = useState(false);
 
   if (isInstalled) {
@@ -32,7 +36,7 @@ export function PWAInstallButton() {
         className="min-h-[40px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
       >
         <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-        <span>{isIOS ? 'Install on iOS' : 'Install PWA'}</span>
+        <span>{isIOS ? "Install on iOS" : "Install PWA"}</span>
       </button>
 
       {showGuide && (
@@ -56,19 +60,16 @@ export function PWAInstallButton() {
 
             <div className="text-xs text-[var(--text-secondary)] space-y-2.5 leading-relaxed">
               <p>
-                Kora runs in standalone full-screen mode with zero browser
-                chrome, wake-lock support, and offline acoustic model storage:
+                Kora runs in standalone full-screen mode with zero browser chrome, wake-lock
+                support, and offline acoustic model storage:
               </p>
               <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-2">
-                <p className="text-[var(--text-primary)] font-medium">
-                  iOS / iPadOS Safari:
-                </p>
+                <p className="text-[var(--text-primary)] font-medium">iOS / iPadOS Safari:</p>
                 <p>
-                  01. Tap the <strong>Share</strong> icon in the bottom Safari
-                  toolbar.
+                  01. Tap the <strong>Share</strong> icon in the bottom Safari toolbar.
                   <br />
-                  02. Select <strong>Add to Home Screen</strong> to install the
-                  tactile Kora squircle icon.
+                  02. Select <strong>Add to Home Screen</strong> to install the tactile Kora
+                  squircle icon.
                 </p>
               </div>
               <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-2">
@@ -76,11 +77,10 @@ export function PWAInstallButton() {
                   Desktop Chrome / Edge / Android:
                 </p>
                 <p>
-                  Click the <strong>Install Kora</strong> icon in the address
-                  bar (or open this app in a top-level tab outside the preview
-                  frame). Service Worker status:{' '}
+                  Click the <strong>Install Kora</strong> icon in the address bar (or open this app
+                  in a top-level tab outside the preview frame). Service Worker status:{" "}
                   <span className="font-mono text-[var(--accent-primary)]">
-                    {swRegistered ? 'Active & Caching' : 'Ready'}
+                    {swRegistered ? "Active & Caching" : "Ready"}
                   </span>
                   .
                 </p>

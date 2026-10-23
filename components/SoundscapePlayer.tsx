@@ -1,14 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  SpeakerHigh as Volume2,
-  Play,
-  Square,
-  Clock,
-} from '@phosphor-icons/react';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { SpeakerHigh as Volume2, Play, Square, Clock } from "@phosphor-icons/react";
 
-type SoundMode = 'brown' | 'pink' | 'heartbeat' | 'shush';
+type SoundMode = "brown" | "pink" | "heartbeat" | "shush";
 
 const SOUND_PROFILES: {
   id: SoundMode;
@@ -17,28 +12,28 @@ const SOUND_PROFILES: {
   targetFreq: string;
 }[] = [
   {
-    id: 'brown',
-    title: 'Womb Brown Noise',
-    subtitle: 'Deep low-pass rumble mimicking intrauterine acoustics',
-    targetFreq: '60–250 Hz',
+    id: "brown",
+    title: "Womb Brown Noise",
+    subtitle: "Deep low-pass rumble mimicking intrauterine acoustics",
+    targetFreq: "60–250 Hz",
   },
   {
-    id: 'pink',
-    title: 'Steady Nursery Rain',
-    subtitle: 'Balanced octave-filtered pink noise for sleep maintenance',
-    targetFreq: '100–1200 Hz',
+    id: "pink",
+    title: "Steady Nursery Rain",
+    subtitle: "Balanced octave-filtered pink noise for sleep maintenance",
+    targetFreq: "100–1200 Hz",
   },
   {
-    id: 'heartbeat',
-    title: 'Resting Heartbeat',
-    subtitle: '60 BPM lub-dub pulse for contact nap & swaddle calming',
-    targetFreq: '60 BPM',
+    id: "heartbeat",
+    title: "Resting Heartbeat",
+    subtitle: "60 BPM lub-dub pulse for contact nap & swaddle calming",
+    targetFreq: "60 BPM",
   },
   {
-    id: 'shush',
-    title: 'Rhythmic Shusher',
-    subtitle: 'Breath-paced sibilant envelope for colic reflex calming',
-    targetFreq: '0.4 Hz cycle',
+    id: "shush",
+    title: "Rhythmic Shusher",
+    subtitle: "Breath-paced sibilant envelope for colic reflex calming",
+    targetFreq: "0.4 Hz cycle",
   },
 ];
 
@@ -50,7 +45,7 @@ function createNoiseBuffer(ctx: AudioContext, mode: SoundMode) {
   let lastOut = 0.0;
   for (let i = 0; i < bufferSize; i++) {
     const white = Math.random() * 2 - 1;
-    if (mode === 'brown') {
+    if (mode === "brown") {
       output[i] = (lastOut + 0.02 * white) / 1.02;
       lastOut = output[i];
       output[i] *= 3.2;
@@ -69,7 +64,7 @@ export function SoundscapePlayer({
 }: {
   onTimerExpired?: () => void;
 } = {}) {
-  const [activeMode, setActiveMode] = useState<SoundMode>('brown');
+  const [activeMode, setActiveMode] = useState<SoundMode>("brown");
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.45);
   const [timerMinutes, setTimerMinutes] = useState<number | null>(15);
@@ -101,11 +96,7 @@ export function SoundscapePlayer({
 
   useEffect(() => {
     if (gainNodeRef.current && audioCtxRef.current) {
-      gainNodeRef.current.gain.setTargetAtTime(
-        volume,
-        audioCtxRef.current.currentTime,
-        0.08
-      );
+      gainNodeRef.current.gain.setTargetAtTime(volume, audioCtxRef.current.currentTime, 0.08);
     }
   }, [volume]);
 
@@ -119,38 +110,33 @@ export function SoundscapePlayer({
     masterGain.connect(ctx.destination);
     gainNodeRef.current = masterGain;
 
-    if (mode === 'brown' || mode === 'pink' || mode === 'shush') {
+    if (mode === "brown" || mode === "pink" || mode === "shush") {
       const whiteNoise = ctx.createBufferSource();
       whiteNoise.buffer = createNoiseBuffer(ctx, mode);
       whiteNoise.loop = true;
 
       const filter = ctx.createBiquadFilter();
-      filter.type = mode === 'shush' ? 'bandpass' : 'lowpass';
-      filter.frequency.value =
-        mode === 'brown' ? 280 : mode === 'pink' ? 950 : 1800;
+      filter.type = mode === "shush" ? "bandpass" : "lowpass";
+      filter.frequency.value = mode === "brown" ? 280 : mode === "pink" ? 950 : 1800;
 
       const envGain = ctx.createGain();
-      envGain.gain.value = mode === 'shush' ? 0.2 : 1.0;
+      envGain.gain.value = mode === "shush" ? 0.2 : 1.0;
 
       whiteNoise.connect(filter);
       filter.connect(envGain);
       envGain.connect(masterGain);
       whiteNoise.start(0);
 
-      if (mode === 'shush') {
+      if (mode === "shush") {
         let phase = 0;
         modIntervalRef.current = setInterval(() => {
           if (!audioCtxRef.current) return;
           phase += 0.15;
           const swell = 0.15 + 0.85 * Math.pow(Math.max(0, Math.sin(phase)), 2);
-          envGain.gain.setTargetAtTime(
-            swell,
-            audioCtxRef.current.currentTime,
-            0.08
-          );
+          envGain.gain.setTargetAtTime(swell, audioCtxRef.current.currentTime, 0.08);
         }, 100);
       }
-    } else if (mode === 'heartbeat') {
+    } else if (mode === "heartbeat") {
       const triggerPulse = () => {
         if (!audioCtxRef.current || !gainNodeRef.current) return;
         const now = audioCtxRef.current.currentTime;
@@ -159,16 +145,13 @@ export function SoundscapePlayer({
           if (!audioCtxRef.current || !gainNodeRef.current) return;
           const osc = audioCtxRef.current.createOscillator();
           const pulseGain = audioCtxRef.current.createGain();
-          osc.type = 'sine';
+          osc.type = "sine";
           osc.frequency.setValueAtTime(freq, now + offset);
           osc.frequency.exponentialRampToValueAtTime(32, now + offset + 0.14);
 
           pulseGain.gain.setValueAtTime(0.001, now + offset);
           pulseGain.gain.linearRampToValueAtTime(amp, now + offset + 0.02);
-          pulseGain.gain.exponentialRampToValueAtTime(
-            0.001,
-            now + offset + 0.16
-          );
+          pulseGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.16);
 
           osc.connect(pulseGain);
           pulseGain.connect(gainNodeRef.current);
@@ -209,26 +192,26 @@ export function SoundscapePlayer({
 
   // Keep browser media controls synchronized with playback, outside React rendering.
   useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
+    if (!("mediaSession" in navigator)) return;
     const session = navigator.mediaSession;
-    session.playbackState = isPlaying ? 'playing' : 'paused';
+    session.playbackState = isPlaying ? "playing" : "paused";
     if (!isPlaying) return;
     const profile = SOUND_PROFILES.find((item) => item.id === activeMode);
     session.metadata = new MediaMetadata({
-      title: profile?.title || 'Kora Nursery Soundscape',
-      artist: 'Kora Acoustic Studio',
-      album: '3:00 AM Soothing Frequencies',
+      title: profile?.title || "Kora Nursery Soundscape",
+      artist: "Kora Acoustic Studio",
+      album: "3:00 AM Soothing Frequencies",
       artwork: [
-        { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+        { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
       ],
     });
-    session.setActionHandler('pause', stopAudio);
-    session.setActionHandler('stop', stopAudio);
+    session.setActionHandler("pause", stopAudio);
+    session.setActionHandler("stop", stopAudio);
     return () => {
-      session.setActionHandler('pause', null);
-      session.setActionHandler('stop', null);
-      session.playbackState = 'paused';
+      session.setActionHandler("pause", null);
+      session.setActionHandler("stop", null);
+      session.playbackState = "paused";
     };
   }, [activeMode, isPlaying, stopAudio]);
 
@@ -242,16 +225,14 @@ export function SoundscapePlayer({
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   return (
     <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-[var(--text-primary)]">
-            Calming sounds
-          </h3>
+          <h3 className="text-base font-bold text-[var(--text-primary)]">Calming sounds</h3>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             Familiar sounds for a softer moment.
           </p>
@@ -262,8 +243,8 @@ export function SoundscapePlayer({
           onClick={() => (isPlaying ? stopAudio() : startSound(activeMode))}
           className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 ${
             isPlaying
-              ? 'bg-rose-500 hover:bg-rose-400 text-white'
-              : 'bg-[var(--accent-primary)] hover:opacity-95 text-stone-950'
+              ? "bg-rose-500 hover:bg-rose-400 text-white"
+              : "bg-[var(--accent-primary)] hover:opacity-95 text-stone-950"
           }`}
         >
           {isPlaying ? (
@@ -290,8 +271,8 @@ export function SoundscapePlayer({
               onClick={() => handleSelectMode(profile.id)}
               className={`min-h-[60px] p-3.5 rounded-2xl border text-left transition-colors flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-amber-400/12 border-amber-400/40 text-[var(--text-primary)]'
-                  : 'bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]'
+                  ? "bg-amber-400/12 border-amber-400/40 text-[var(--text-primary)]"
+                  : "bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]"
               }`}
             >
               <span className="flex items-center justify-between gap-2 w-full">
@@ -331,7 +312,7 @@ export function SoundscapePlayer({
           <Clock className="w-3.5 h-3.5 text-[var(--text-secondary)] mr-1 shrink-0" />
           {[15, 30, 60, null].map((mins) => (
             <button
-              key={mins === null ? 'inf' : mins}
+              key={mins === null ? "inf" : mins}
               type="button"
               onClick={() => {
                 setTimerMinutes(mins);
@@ -341,11 +322,11 @@ export function SoundscapePlayer({
               }}
               className={`min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 timerMinutes === mins
-                  ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] border border-amber-400/30'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? "bg-[var(--bg-elevated)] text-[var(--accent-primary)] border border-amber-400/30"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {mins === null ? 'Continuous' : `${mins}m`}
+              {mins === null ? "Continuous" : `${mins}m`}
             </button>
           ))}
           {isPlaying && remainingSeconds !== null && (

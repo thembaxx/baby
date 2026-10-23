@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Desktop,
@@ -12,25 +12,24 @@ import {
   DeviceMobile,
   Vibrate,
   CaretDown,
-} from '@phosphor-icons/react';
-import { motion } from 'motion/react';
-import { AnimatedTabs } from './easyui/AnimatedTabs';
-import { UnfoldAccordion } from './easyui/UnfoldAccordion';
-import type { CaregiverRole } from './CaregiverHandoffCard';
-import type { HapticIntensity } from '@/lib/haptics';
+} from "@phosphor-icons/react";
+import { motion } from "motion/react";
+import { AnimatedTabs } from "./easyui/AnimatedTabs";
+import { UnfoldAccordion } from "./easyui/UnfoldAccordion";
+import type { CaregiverRole } from "./CaregiverHandoffCard";
+import type { HapticIntensity } from "@/lib/haptics";
 
-export type ThemeSetting =
-  'nocturne' | 'redlight' | 'lunar' | 'daylight' | 'system';
+export type ThemeSetting = "nocturne" | "redlight" | "lunar" | "daylight" | "system";
 
 const THEMES = [
-  { id: 'nocturne', name: 'Night glow', detail: 'Warm & quiet', icon: Moon },
-  { id: 'redlight', name: 'Red light', detail: 'A softer night', icon: Eye },
-  { id: 'lunar', name: 'Lunar', detail: 'Cool & still', icon: Sparkle },
-  { id: 'daylight', name: 'Daylight', detail: 'Light & clear', icon: Sun },
+  { id: "nocturne", name: "Night glow", detail: "Warm & quiet", icon: Moon },
+  { id: "redlight", name: "Red light", detail: "A softer night", icon: Eye },
+  { id: "lunar", name: "Lunar", detail: "Cool & still", icon: Sparkle },
+  { id: "daylight", name: "Daylight", detail: "Light & clear", icon: Sun },
   {
-    id: 'system',
-    name: 'Automatic',
-    detail: 'Match your device',
+    id: "system",
+    name: "Automatic",
+    detail: "Match your device",
     icon: Desktop,
   },
 ] as const;
@@ -83,7 +82,7 @@ function SettingSwitch({
         <motion.span
           className="setting-switch-thumb"
           animate={{ x: checked ? 20 : 0 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
         />
       </button>
     </div>
@@ -112,7 +111,7 @@ export function NurserySettings(props: NurserySettingsProps) {
               <div className="theme-preview">
                 <Icon
                   size={24}
-                  weight={props.theme === id ? 'fill' : 'regular'}
+                  weight={props.theme === id ? "fill" : "regular"}
                   aria-hidden="true"
                 />
                 <span className="theme-mini-nav">
@@ -141,9 +140,7 @@ export function NurserySettings(props: NurserySettingsProps) {
           </div>
           <label className="setting-row caregiver-select">
             <span className="flex-1">
-              <span className="block font-semibold text-sm">
-                Caregiver view
-              </span>
+              <span className="block font-semibold text-sm">Caregiver view</span>
               <span className="block text-xs text-[var(--text-secondary)] mt-1">
                 Grandparent view uses larger text and hides the 3D orb.
               </span>
@@ -151,9 +148,7 @@ export function NurserySettings(props: NurserySettingsProps) {
             <span className="relative">
               <select
                 value={props.caregiverRole}
-                onChange={(event) =>
-                  props.onRoleChange(event.target.value as CaregiverRole)
-                }
+                onChange={(event) => props.onRoleChange(event.target.value as CaregiverRole)}
                 aria-label="Caregiver view"
               >
                 <option value="parent">Parent</option>
@@ -184,8 +179,7 @@ export function NurserySettings(props: NurserySettingsProps) {
           <SettingSwitch
             title="Keep screen awake"
             description={
-              props.wakeLockFeedback ||
-              'While Kora is open and your device supports it.'
+              props.wakeLockFeedback || "While Kora is open and your device supports it."
             }
             checked={props.wakeLockActive}
             onChange={props.onToggleWakeLock}
@@ -207,28 +201,39 @@ export function NurserySettings(props: NurserySettingsProps) {
           </div>
           <AnimatedTabs
             label="Vibration strength"
-            items={[{ id: 'off', label: 'Off' }, { id: 'gentle', label: 'Gentle' }, { id: 'standard', label: 'Standard' }, { id: 'strong', label: 'Strong' }]}
+            items={[
+              { id: "off", label: "Off" },
+              { id: "gentle", label: "Gentle" },
+              { id: "standard", label: "Standard" },
+              { id: "strong", label: "Strong" },
+            ]}
             value={props.hapticIntensity}
-            onChange={value => props.onHapticChange(value as HapticIntensity)}
+            onChange={(value) => props.onHapticChange(value as HapticIntensity)}
           />
           <button
             type="button"
             className="quiet-action haptic-preview"
             onClick={props.onTestHaptic}
-            disabled={props.hapticIntensity === 'off'}
+            disabled={props.hapticIntensity === "off"}
           >
             <Vibrate size={18} aria-hidden="true" />
             Preview vibration
           </button>
-          <p className="settings-help">
-            Motion follows your device’s Reduce Motion preference.
-          </p>
+          <p className="settings-help">Motion follows your device’s Reduce Motion preference.</p>
         </section>
       </div>
       <section className="settings-section" aria-label="About Kora">
         <UnfoldAccordion title="Privacy, model limits & safe use">
-          <p>Kora is an experimental care journal, not a medical device. Cry categories and percentages are not clinically validated diagnoses. Check your baby directly, and contact a healthcare professional for concerns or urgent symptoms.</p>
-          <p>Care notes stay in this browser’s local storage. Audio is sent to a configured inference service only when you request analysis; an unavailable model cannot provide a real cry analysis.</p>
+          <p>
+            Kora is an experimental care journal, not a medical device. Cry categories and
+            percentages are not clinically validated diagnoses. Check your baby directly, and
+            contact a healthcare professional for concerns or urgent symptoms.
+          </p>
+          <p>
+            Care notes stay in this browser’s local storage. Audio is sent to a configured inference
+            service only when you request analysis; an unavailable model cannot provide a real cry
+            analysis.
+          </p>
         </UnfoldAccordion>
       </section>
     </>
