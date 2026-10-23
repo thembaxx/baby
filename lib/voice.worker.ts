@@ -18,10 +18,7 @@ import {
 const scope = self as unknown as {
   location: Location;
   onmessage: ((event: MessageEvent<VoiceWorkerRequest>) => void) | null;
-  postMessage: (
-    message: VoiceWorkerResponse,
-    transfer?: Transferable[],
-  ) => void;
+  postMessage: (message: VoiceWorkerResponse, transfer?: Transferable[]) => void;
 };
 const send = (message: VoiceWorkerResponse) => scope.postMessage(message);
 
@@ -33,20 +30,13 @@ scope.onmessage = async ({ data }) => {
     const nativeFetch = globalThis.fetch.bind(globalThis);
     // Runtime files also live in the pack cache, so inference needs no network.
     globalThis.fetch = async (input, init) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.href
-            : input.url;
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.startsWith(runtimeBase)) {
         const cached = await cache.match(url);
         if (cached) return cached;
       }
       if (!downloading && url.startsWith("https://huggingface.co/")) {
-        throw new Error(
-          "The saved voice pack is incomplete. Download it again.",
-        );
+        throw new Error("The saved voice pack is incomplete. Download it again.");
       }
       return nativeFetch(input, init);
     };
@@ -54,14 +44,11 @@ scope.onmessage = async ({ data }) => {
       const manifest = await nativeFetch(
         new URL("/voice-runtime/manifest.json", scope.location.origin),
       ).then((response) => {
-        if (!response.ok)
-          throw new Error("Voice files could not be loaded. Please try again.");
+        if (!response.ok) throw new Error("Voice files could not be loaded. Please try again.");
         return response.json() as Promise<{ version: string; files: string[] }>;
       });
       if (manifest.version !== VOICE_RUNTIME_VERSION)
-        throw new Error(
-          "The voice engine was updated. Reload the app and try the download again.",
-        );
+        throw new Error("The voice engine was updated. Reload the app and try the download again.");
       // Keep the large model, but discard runtime assets from older engines.
       for (const request of await cache.keys()) {
         const url = new URL(request.url);
@@ -73,12 +60,10 @@ scope.onmessage = async ({ data }) => {
           await cache.delete(request);
       }
       for (const file of manifest.files) {
-        const url = new URL(`/voice-runtime/${file}`, scope.location.origin)
-          .href;
+        const url = new URL(`/voice-runtime/${file}`, scope.location.origin).href;
         if (!(await cache.match(url))) {
           const response = await nativeFetch(url);
-          if (!response.ok)
-            throw new Error("Voice runtime download failed. Please try again.");
+          if (!response.ok) throw new Error("Voice runtime download failed. Please try again.");
           await cache.put(url, response);
         }
       }
@@ -87,8 +72,7 @@ scope.onmessage = async ({ data }) => {
         const url = voiceVectorUrl(voice.id);
         if (!(await vectors.match(url))) {
           const response = await nativeFetch(url);
-          if (!response.ok)
-            throw new Error("Voice download failed. Please try again.");
+          if (!response.ok) throw new Error("Voice download failed. Please try again.");
           await vectors.put(url, response);
         }
       }
@@ -124,11 +108,7 @@ scope.onmessage = async ({ data }) => {
       dtype: "q8",
       device: "wasm",
       progress_callback: (progress) => {
-        if (
-          downloading &&
-          progress.status === "progress" &&
-          progress.file.endsWith(".onnx")
-        ) {
+        if (downloading && progress.status === "progress" && progress.file.endsWith(".onnx")) {
           send({
             type: "progress",
             progress: 10 + Math.round(progress.progress * 0.8),
@@ -142,14 +122,10 @@ scope.onmessage = async ({ data }) => {
       // Exercise the phonemizer and runtime before advertising offline readiness.
       await tts.generate("A little calm.", { voice: "af_heart" });
       if (!(await cache.match(VOICE_MODEL_URL)))
-        throw new Error(
-          "The voice model could not be saved. Check available storage and retry.",
-        );
+        throw new Error("The voice model could not be saved. Check available storage and retry.");
       await cache.put(
         VOICE_PACK_MARKER,
-        new Response(
-          JSON.stringify({ version: 1, runtimeVersion: VOICE_RUNTIME_VERSION }),
-        ),
+        new Response(JSON.stringify({ version: 1, runtimeVersion: VOICE_RUNTIME_VERSION })),
       );
       send({ type: "ready" });
     } else {
@@ -165,23 +141,17 @@ scope.onmessage = async ({ data }) => {
         chunks.push(audio.audio.slice());
         sampleRate = audio.sampling_rate;
       }
-      const samples = new Float32Array(
-        chunks.reduce((total, chunk) => total + chunk.length, 0),
-      );
+      const samples = new Float32Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
       let offset = 0;
       for (const chunk of chunks) {
         samples.set(chunk, offset);
         offset += chunk.length;
       }
-      scope.postMessage(
-        { type: "audio", samples: samples.buffer, sampleRate },
-        [samples.buffer],
-      );
+      scope.postMessage({ type: "audio", samples: samples.buffer, sampleRate }, [samples.buffer]);
     }
     await tts.model.dispose();
   } catch (error) {
-    const quota =
-      error instanceof DOMException && error.name === "QuotaExceededError";
+    const quota = error instanceof DOMException && error.name === "QuotaExceededError";
     send({
       type: "error",
       message: quota

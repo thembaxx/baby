@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useRef, type ReactNode } from 'react';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import type { NurseryTab } from './NurseryNavigation';
+import { useRef, type ReactNode } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import type { NurseryTab } from "./NurseryNavigation";
 
 gsap.registerPlugin(useGSAP);
 
@@ -20,25 +20,21 @@ export function NurseryTabPanel({
 
   useGSAP(
     () => {
-      if (
-        !active ||
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      )
-        return;
+      if (!active || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       gsap.fromTo(
-        '.panel-content > *',
+        ".panel-content > *",
         { opacity: 0, y: 12 },
         {
           opacity: 1,
           y: 0,
           duration: 0.45,
           stagger: 0.045,
-          ease: 'power3.out',
-          clearProps: 'transform,opacity',
-        }
+          ease: "power3.out",
+          clearProps: "transform,opacity",
+        },
       );
     },
-    { scope, dependencies: [active], revertOnUpdate: true }
+    { scope, dependencies: [active], revertOnUpdate: true },
   );
 
   return (

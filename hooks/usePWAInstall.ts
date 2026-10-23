@@ -1,43 +1,38 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { useClientReady } from './use-client-ready';
+import { useClientReady } from "./use-client-ready";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
 const getStandalone = () =>
-  window.matchMedia('(display-mode: standalone)').matches ||
+  window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 const getNotInstalled = () => false;
 
 function subscribeStandalone(onChange: () => void) {
-  const media = window.matchMedia('(display-mode: standalone)');
-  media.addEventListener('change', onChange);
-  return () => media.removeEventListener('change', onChange);
+  const media = window.matchMedia("(display-mode: standalone)");
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
 }
 
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installedByPrompt, setIsInstalled] = useState(false);
-  const isStandalone = useSyncExternalStore(
-    subscribeStandalone,
-    getStandalone,
-    getNotInstalled
-  );
+  const isStandalone = useSyncExternalStore(subscribeStandalone, getStandalone, getNotInstalled);
   const isInstalled = installedByPrompt || isStandalone;
   const clientReady = useClientReady();
   const isIOS = clientReady && /iphone|ipad|ipod/i.test(navigator.userAgent);
   const [swRegistered, setSwRegistered] = useState(false);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register('/sw.js')
+        .register("/sw.js")
         .then(() => setSwRegistered(true))
         .catch(() => {});
     }
@@ -52,15 +47,12 @@ export function usePWAInstall() {
       setDeferredPrompt(null);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener(
-        'beforeinstallprompt',
-        handleBeforeInstallPrompt
-      );
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
@@ -68,7 +60,7 @@ export function usePWAInstall() {
     if (!deferredPrompt) return false;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
+    if (outcome === "accepted") {
       setIsInstalled(true);
       setDeferredPrompt(null);
       return true;
@@ -86,11 +78,11 @@ export function usePWAInstall() {
 }
 
 function subscribeOnline(onChange: () => void) {
-  window.addEventListener('online', onChange);
-  window.addEventListener('offline', onChange);
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
   return () => {
-    window.removeEventListener('online', onChange);
-    window.removeEventListener('offline', onChange);
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
   };
 }
 

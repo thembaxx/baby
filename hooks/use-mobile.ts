@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from "react";
 
-const MOBILE_QUERY = '(max-width: 767px)';
+const MOBILE_QUERY = "(max-width: 767px)";
 const getSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
 const getServerSnapshot = () => false;
 
 function subscribe(onChange: () => void) {
   const media = window.matchMedia(MOBILE_QUERY);
-  media.addEventListener('change', onChange);
-  return () => media.removeEventListener('change', onChange);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
 }
 
 export function useIsMobile() {

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   Moon,
   Sun,
@@ -11,10 +11,10 @@ import {
   Sparkle as Sparkles,
   ThermometerSimple as Thermometer,
   CalendarBlank as Calendar,
-} from '@phosphor-icons/react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useClientReady } from '@/hooks/use-client-ready';
-import type { CryAnalysisResult } from '@/app/api/classify-cry/route';
+} from "@phosphor-icons/react";
+import { motion, AnimatePresence } from "motion/react";
+import { useClientReady } from "@/hooks/use-client-ready";
+import type { CryAnalysisResult } from "@/app/api/classify-cry/route";
 
 export interface DailySleepRecord {
   dayLabel: string;
@@ -28,121 +28,121 @@ export interface DailySleepRecord {
 
 const INITIAL_SLEEP_DATA: DailySleepRecord[] = [
   {
-    dayLabel: 'Mon',
-    dateStr: 'Oct 5',
+    dayLabel: "Mon",
+    dateStr: "Oct 5",
     nightHours: 8.2,
     napHours: 5.4,
     longestStretchHours: 3.4,
     wakings: 3,
-    dominantCry: 'Hunger',
+    dominantCry: "Hunger",
   },
   {
-    dayLabel: 'Tue',
-    dateStr: 'Oct 6',
+    dayLabel: "Tue",
+    dateStr: "Oct 6",
     nightHours: 8.6,
     napHours: 5.1,
     longestStretchHours: 3.8,
     wakings: 3,
-    dominantCry: 'Gas / Colic',
+    dominantCry: "Gas / Colic",
   },
   {
-    dayLabel: 'Wed',
-    dateStr: 'Oct 7',
+    dayLabel: "Wed",
+    dateStr: "Oct 7",
     nightHours: 7.9,
     napHours: 4.8,
     longestStretchHours: 3.1,
     wakings: 4,
-    dominantCry: 'Overtired',
+    dominantCry: "Overtired",
   },
   {
-    dayLabel: 'Thu',
-    dateStr: 'Oct 8',
+    dayLabel: "Thu",
+    dateStr: "Oct 8",
     nightHours: 8.8,
     napHours: 5.3,
     longestStretchHours: 4.1,
     wakings: 2,
-    dominantCry: 'Hunger',
+    dominantCry: "Hunger",
   },
   {
-    dayLabel: 'Fri',
-    dateStr: 'Oct 9',
+    dayLabel: "Fri",
+    dateStr: "Oct 9",
     nightHours: 9.1,
     napHours: 5.2,
     longestStretchHours: 4.4,
     wakings: 2,
-    dominantCry: 'Discomfort',
+    dominantCry: "Discomfort",
   },
   {
-    dayLabel: 'Sat',
-    dateStr: 'Oct 10',
+    dayLabel: "Sat",
+    dateStr: "Oct 10",
     nightHours: 8.4,
     napHours: 4.9,
     longestStretchHours: 3.6,
     wakings: 3,
-    dominantCry: 'Gas / Colic',
+    dominantCry: "Gas / Colic",
   },
   {
-    dayLabel: 'Sun',
-    dateStr: 'Oct 11',
+    dayLabel: "Sun",
+    dateStr: "Oct 11",
     nightHours: 9.3,
     napHours: 5.4,
     longestStretchHours: 4.6,
     wakings: 2,
-    dominantCry: 'Hunger',
+    dominantCry: "Hunger",
   },
   {
-    dayLabel: 'Mon',
-    dateStr: 'Oct 12',
+    dayLabel: "Mon",
+    dateStr: "Oct 12",
     nightHours: 9.0,
     napHours: 5.1,
     longestStretchHours: 4.5,
     wakings: 2,
-    dominantCry: 'Gas / Colic',
+    dominantCry: "Gas / Colic",
   },
   {
-    dayLabel: 'Tue',
-    dateStr: 'Oct 13',
+    dayLabel: "Tue",
+    dateStr: "Oct 13",
     nightHours: 9.5,
     napHours: 5.3,
     longestStretchHours: 4.9,
     wakings: 2,
-    dominantCry: 'Hunger',
+    dominantCry: "Hunger",
   },
   {
-    dayLabel: 'Wed',
-    dateStr: 'Oct 14',
+    dayLabel: "Wed",
+    dateStr: "Oct 14",
     nightHours: 8.7,
     napHours: 4.7,
     longestStretchHours: 4.0,
     wakings: 3,
-    dominantCry: 'Overtired',
+    dominantCry: "Overtired",
   },
   {
-    dayLabel: 'Thu',
-    dateStr: 'Oct 15',
+    dayLabel: "Thu",
+    dateStr: "Oct 15",
     nightHours: 9.6,
     napHours: 5.2,
     longestStretchHours: 5.1,
     wakings: 2,
-    dominantCry: 'Gas / Colic',
+    dominantCry: "Gas / Colic",
   },
   {
-    dayLabel: 'Fri',
-    dateStr: 'Oct 16',
+    dayLabel: "Fri",
+    dateStr: "Oct 16",
     nightHours: 9.8,
     napHours: 5.4,
     longestStretchHours: 5.4,
     wakings: 1,
-    dominantCry: 'Hunger',
+    dominantCry: "Hunger",
   },
   {
-    dayLabel: 'Sat',
-    dateStr: 'Oct 17',
+    dayLabel: "Sat",
+    dateStr: "Oct 17",
     nightHours: 9.4,
     napHours: 5.2,
     longestStretchHours: 5.0,
     wakings: 2,
-    dominantCry: 'Gas / Colic',
+    dominantCry: "Gas / Colic",
   },
 ];
 
@@ -151,7 +151,7 @@ interface SleepTrendsAndRecsProps {
   minsSinceFeed: number;
   minsSinceSleep: number;
   minsSinceDiaper: number;
-  onLogSleepBlock?: (hours: number, kind: 'night' | 'nap') => void;
+  onLogSleepBlock?: (hours: number, kind: "night" | "nap") => void;
   onStartWindDownTimer?: () => void;
 }
 
@@ -163,16 +163,11 @@ export function SleepTrendsAndRecs({
   onLogSleepBlock,
   onStartWindDownTimer,
 }: SleepTrendsAndRecsProps) {
-  const [sleepRecords, setSleepRecords] =
-    useState<DailySleepRecord[]>(INITIAL_SLEEP_DATA);
+  const [sleepRecords, setSleepRecords] = useState<DailySleepRecord[]>(INITIAL_SLEEP_DATA);
   const [rangeDays, setRangeDays] = useState<7 | 13>(7);
-  const [chartMode, setChartMode] = useState<'stacked' | 'stretch'>('stacked');
-  const [selectedIdx, setSelectedIdx] = useState<number>(
-    INITIAL_SLEEP_DATA.length - 1
-  );
-  const [completedRecs, setCompletedRecs] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [chartMode, setChartMode] = useState<"stacked" | "stretch">("stacked");
+  const [selectedIdx, setSelectedIdx] = useState<number>(INITIAL_SLEEP_DATA.length - 1);
+  const [completedRecs, setCompletedRecs] = useState<Record<string, boolean>>({});
   const [babyAgeWeeks, setBabyAgeWeeks] = useState<number>(8);
   const hasMounted = useClientReady();
 
@@ -187,20 +182,14 @@ export function SleepTrendsAndRecs({
   // Calculate aggregate trend KPIs
   const stats = useMemo(() => {
     const recent = sleepRecords.slice(-7);
-    const totalAvg =
-      recent.reduce((acc, d) => acc + d.nightHours + d.napHours, 0) /
-      recent.length;
-    const nightAvg =
-      recent.reduce((acc, d) => acc + d.nightHours, 0) / recent.length;
+    const totalAvg = recent.reduce((acc, d) => acc + d.nightHours + d.napHours, 0) / recent.length;
+    const nightAvg = recent.reduce((acc, d) => acc + d.nightHours, 0) / recent.length;
     const longestStretchAvg =
       recent.reduce((acc, d) => acc + d.longestStretchHours, 0) / recent.length;
-    const avgWakings =
-      recent.reduce((acc, d) => acc + d.wakings, 0) / recent.length;
+    const avgWakings = recent.reduce((acc, d) => acc + d.wakings, 0) / recent.length;
 
-    const firstHalf =
-      recent.slice(0, 3).reduce((a, d) => a + d.longestStretchHours, 0) / 3;
-    const secondHalf =
-      recent.slice(-3).reduce((a, d) => a + d.longestStretchHours, 0) / 3;
+    const firstHalf = recent.slice(0, 3).reduce((a, d) => a + d.longestStretchHours, 0) / 3;
+    const secondHalf = recent.slice(-3).reduce((a, d) => a + d.longestStretchHours, 0) / 3;
     const stretchDelta = secondHalf - firstHalf;
 
     return {
@@ -208,23 +197,20 @@ export function SleepTrendsAndRecs({
       nightAvg: nightAvg.toFixed(1),
       longestStretchAvg: longestStretchAvg.toFixed(1),
       avgWakings: avgWakings.toFixed(1),
-      stretchDelta:
-        (stretchDelta >= 0 ? '+' : '') + stretchDelta.toFixed(1) + 'h',
+      stretchDelta: (stretchDelta >= 0 ? "+" : "") + stretchDelta.toFixed(1) + "h",
     };
   }, [sleepRecords]);
 
   // Add sleep hours to today's record
-  const handleAddSleepToToday = (hours: number, kind: 'night' | 'nap') => {
+  const handleAddSleepToToday = (hours: number, kind: "night" | "nap") => {
     setSleepRecords((prev) => {
       const next = [...prev];
       const lastIndex = next.length - 1;
       const last = { ...next[lastIndex] };
-      if (kind === 'night') {
-        last.nightHours = Number(
-          Math.min(13, last.nightHours + hours).toFixed(1)
-        );
+      if (kind === "night") {
+        last.nightHours = Number(Math.min(13, last.nightHours + hours).toFixed(1));
         last.longestStretchHours = Number(
-          Math.max(last.longestStretchHours, last.nightHours * 0.55).toFixed(1)
+          Math.max(last.longestStretchHours, last.nightHours * 0.55).toFixed(1),
         );
       } else {
         last.napHours = Number(Math.min(8, last.napHours + hours).toFixed(1));
@@ -249,64 +235,61 @@ export function SleepTrendsAndRecs({
   // Dynamic Evidence-Backed Recommendations
   const recommendations = [
     {
-      id: 'rec-sweetspot',
-      category: 'Sleep Window Forecast',
-      timing:
-        minsUntilSweetSpot === 0
-          ? 'SweetSpot Active Now'
-          : `In ${minsUntilSweetSpot} mins`,
+      id: "rec-sweetspot",
+      category: "Sleep Window Forecast",
+      timing: minsUntilSweetSpot === 0 ? "SweetSpot Active Now" : `In ${minsUntilSweetSpot} mins`,
       title:
         minsUntilSweetSpot === 0
-          ? 'Initiate Wind-Down Now to Prevent Cortisol Second-Wind'
+          ? "Initiate Wind-Down Now to Prevent Cortisol Second-Wind"
           : `Target Next Sleep Onset Within ${minsUntilSweetSpot} Minutes`,
       description: `For an ${babyAgeWeeks}-week infant, the optimal wake window is ${targetWakeWindowMins}m (currently awake ${minsSinceSleep}m). Settling 10 minutes before peak overtiredness reduces "Owh" sleep-regression crying by 38%.`,
-      actionLabel: 'Start 60s Wind-Down Timer',
+      actionLabel: "Start 60s Wind-Down Timer",
       onAction: () => {
         onStartWindDownTimer?.();
-        setCompletedRecs((p) => ({ ...p, 'rec-sweetspot': true }));
+        setCompletedRecs((p) => ({ ...p, "rec-sweetspot": true }));
       },
     },
     {
-      id: 'rec-circadian',
-      category: 'Night Stretch Consolidation',
+      id: "rec-circadian",
+      category: "Night Stretch Consolidation",
       timing: `Longest stretch ${stats.longestStretchAvg}h avg (${stats.stretchDelta} trend)`,
-      title: 'Anchor 11:00 PM Cluster/Dream Feed & 7:30 AM Daylight Cue',
+      title: "Anchor 11:00 PM Cluster/Dream Feed & 7:30 AM Daylight Cue",
       description: `Your 7-day night sleep averages ${stats.nightAvg}h across ${stats.avgWakings} wakings. Offering a calm, low-light dream feed before midnight and 15 minutes of indirect morning daylight consolidates the primary night stretch.`,
-      actionLabel: 'Log +1.0h Night Stretch',
+      actionLabel: "Log +1.0h Night Stretch",
       onAction: () => {
-        handleAddSleepToToday(1.0, 'night');
-        setCompletedRecs((p) => ({ ...p, 'rec-circadian': true }));
+        handleAddSleepToToday(1.0, "night");
+        setCompletedRecs((p) => ({ ...p, "rec-circadian": true }));
       },
     },
     {
-      id: 'rec-acoustic',
+      id: "rec-acoustic",
       category: `Acoustic Protocol · ${analysis.primaryCategory}`,
       timing: `${analysis.confidenceScore}% model confidence`,
       title:
-        analysis.primaryCategory === 'Gas / Colic'
-          ? 'Upright 20-Minute Post-Feed Hold & Left-Side Digestion Positioning'
-          : analysis.primaryCategory === 'Hunger'
-            ? 'Early Rooting Cue Response & Mid-Feed Burp Interval'
-            : 'Continuous 50 dB Low-Pass Brown Noise & Swaddle Containment',
+        analysis.primaryCategory === "Gas / Colic"
+          ? "Upright 20-Minute Post-Feed Hold & Left-Side Digestion Positioning"
+          : analysis.primaryCategory === "Hunger"
+            ? "Early Rooting Cue Response & Mid-Feed Burp Interval"
+            : "Continuous 50 dB Low-Pass Brown Noise & Swaddle Containment",
       description: `${analysis.immediateSoothingAction} Last feeding was ${minsSinceFeed}m ago and last diaper check was ${minsSinceDiaper}m ago.`,
-      actionLabel: 'Log +0.8h Restorative Nap',
+      actionLabel: "Log +0.8h Restorative Nap",
       onAction: () => {
-        handleAddSleepToToday(0.8, 'nap');
-        setCompletedRecs((p) => ({ ...p, 'rec-acoustic': true }));
+        handleAddSleepToToday(0.8, "nap");
+        setCompletedRecs((p) => ({ ...p, "rec-acoustic": true }));
       },
     },
     {
-      id: 'rec-environment',
-      category: 'Nursery Micro-Environment',
-      timing: '20–22°C · < 5 lux Amber',
-      title: 'Thermal & Acoustic Calibration for REM Transitions',
+      id: "rec-environment",
+      category: "Nursery Micro-Environment",
+      timing: "20–22°C · < 5 lux Amber",
+      title: "Thermal & Acoustic Calibration for REM Transitions",
       description:
-        'Infants cycle between active (REM) and quiet sleep every 45–50 minutes. Keeping ambient room temperature at 20.5°C (69°F) with continuous low-frequency pink/brown noise prevents partial-arousal startles.',
-      actionLabel: 'Mark Calibrated',
+        "Infants cycle between active (REM) and quiet sleep every 45–50 minutes. Keeping ambient room temperature at 20.5°C (69°F) with continuous low-frequency pink/brown noise prevents partial-arousal startles.",
+      actionLabel: "Mark Calibrated",
       onAction: () => {
         setCompletedRecs((p) => ({
           ...p,
-          'rec-environment': !p['rec-environment'],
+          "rec-environment": !p["rec-environment"],
         }));
       },
     },
@@ -333,14 +316,12 @@ export function SleepTrendsAndRecs({
 
         {/* Infant Age Calibration Selector */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-[var(--text-secondary)] mr-1">
-            Infant Age Calibration:
-          </span>
+          <span className="text-xs text-[var(--text-secondary)] mr-1">Infant Age Calibration:</span>
           {[
-            { weeks: 4, label: '0–4 wks' },
-            { weeks: 8, label: '5–8 wks' },
-            { weeks: 12, label: '9–12 wks' },
-            { weeks: 16, label: '4+ mos' },
+            { weeks: 4, label: "0–4 wks" },
+            { weeks: 8, label: "5–8 wks" },
+            { weeks: 12, label: "9–12 wks" },
+            { weeks: 16, label: "4+ mos" },
           ].map((age) => (
             <button
               key={age.weeks}
@@ -348,8 +329,8 @@ export function SleepTrendsAndRecs({
               onClick={() => setBabyAgeWeeks(age.weeks)}
               className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
                 babyAgeWeeks === age.weeks
-                  ? 'bg-[var(--accent-primary)] text-stone-950 font-semibold border-amber-400'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+                  ? "bg-[var(--accent-primary)] text-stone-950 font-semibold border-amber-400"
+                  : "bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]"
               }`}
             >
               {age.label}
@@ -367,22 +348,22 @@ export function SleepTrendsAndRecs({
             <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
               <button
                 type="button"
-                onClick={() => setChartMode('stacked')}
+                onClick={() => setChartMode("stacked")}
                 className={`min-h-[34px] px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                  chartMode === 'stacked'
-                    ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] font-semibold'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  chartMode === "stacked"
+                    ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] font-semibold"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 Total sleep
               </button>
               <button
                 type="button"
-                onClick={() => setChartMode('stretch')}
+                onClick={() => setChartMode("stretch")}
                 className={`min-h-[34px] px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                  chartMode === 'stretch'
-                    ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] font-semibold'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  chartMode === "stretch"
+                    ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] font-semibold"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 Longest stretch
@@ -397,11 +378,11 @@ export function SleepTrendsAndRecs({
                   onClick={() => setRangeDays(days)}
                   className={`min-h-[34px] px-3 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
                     rangeDays === days
-                      ? 'bg-amber-400/15 border-amber-400/40 text-[var(--accent-primary)] font-semibold'
-                      : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      ? "bg-amber-400/15 border-amber-400/40 text-[var(--accent-primary)] font-semibold"
+                      : "bg-[var(--bg-canvas)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
-                  {days === 7 ? '7 Days' : '14 Days'}
+                  {days === 7 ? "7 Days" : "14 Days"}
                 </button>
               ))}
             </div>
@@ -410,21 +391,15 @@ export function SleepTrendsAndRecs({
           {/* 4-Metric Summary Strip inside Chart */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
-              <div className="text-[11px] text-[var(--text-secondary)]">
-                7d Daily Total Avg
-              </div>
+              <div className="text-[11px] text-[var(--text-secondary)]">7d Daily Total Avg</div>
               <div className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
                 {stats.totalAvg}h
               </div>
-              <div className="text-[11px] text-emerald-400 mt-0.5">
-                Target 14.0–16.5h
-              </div>
+              <div className="text-[11px] text-emerald-400 mt-0.5">Target 14.0–16.5h</div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
-              <div className="text-[11px] text-[var(--text-secondary)]">
-                Longest Night Stretch
-              </div>
+              <div className="text-[11px] text-[var(--text-secondary)]">Longest Night Stretch</div>
               <div className="text-lg font-bold font-mono tabular-nums text-[var(--accent-primary)] mt-0.5">
                 {stats.longestStretchAvg}h
               </div>
@@ -434,9 +409,7 @@ export function SleepTrendsAndRecs({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
-              <div className="text-[11px] text-[var(--text-secondary)]">
-                Night vs Day Split
-              </div>
+              <div className="text-[11px] text-[var(--text-secondary)]">Night vs Day Split</div>
               <div className="text-lg font-bold font-mono tabular-nums text-[var(--text-primary)] mt-0.5">
                 {stats.nightAvg}h
               </div>
@@ -446,11 +419,9 @@ export function SleepTrendsAndRecs({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
-              <div className="text-[11px] text-[var(--text-secondary)]">
-                SweetSpot Next Nap
-              </div>
+              <div className="text-[11px] text-[var(--text-secondary)]">SweetSpot Next Nap</div>
               <div className="text-lg font-bold font-mono tabular-nums text-sky-400 mt-0.5">
-                {minsUntilSweetSpot === 0 ? 'Now' : `${minsUntilSweetSpot}m`}
+                {minsUntilSweetSpot === 0 ? "Now" : `${minsUntilSweetSpot}m`}
               </div>
               <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                 {targetWakeWindowMins}m wake ceiling
@@ -462,7 +433,7 @@ export function SleepTrendsAndRecs({
           <div className="relative pt-4 pb-2">
             {/* Reference Pediatric Target Guideline Line (14.5h) */}
             <AnimatePresence initial={false}>
-              {chartMode === 'stacked' && (
+              {chartMode === "stacked" && (
                 <motion.div
                   key="pediatric-target-line"
                   initial={hasMounted ? { opacity: 0, y: -6 } : false}
@@ -484,30 +455,23 @@ export function SleepTrendsAndRecs({
             <div className="h-[196px] flex items-end justify-between gap-2 sm:gap-3 pt-4">
               <AnimatePresence initial={false}>
                 {visibleData.map((day, idx) => {
-                  const globalIndex =
-                    sleepRecords.length - visibleData.length + idx;
+                  const globalIndex = sleepRecords.length - visibleData.length + idx;
                   const isSelected = globalIndex === selectedIdx;
-                  const totalHours = Number(
-                    (day.nightHours + day.napHours).toFixed(1)
-                  );
+                  const totalHours = Number((day.nightHours + day.napHours).toFixed(1));
 
                   const nightHeightPct =
-                    chartMode === 'stacked'
+                    chartMode === "stacked"
                       ? (day.nightHours / maxChartHours) * 100
                       : (day.longestStretchHours / 8) * 100;
                   const napHeightPct =
-                    chartMode === 'stacked'
-                      ? (day.napHours / maxChartHours) * 100
-                      : 0;
+                    chartMode === "stacked" ? (day.napHours / maxChartHours) * 100 : 0;
 
                   return (
                     <motion.button
                       layout={hasMounted}
                       key={day.dateStr}
                       type="button"
-                      initial={
-                        hasMounted ? { opacity: 0, y: 18, scale: 0.92 } : false
-                      }
+                      initial={hasMounted ? { opacity: 0, y: 18, scale: 0.92 } : false}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 16, scale: 0.88 }}
                       transition={{
@@ -527,29 +491,25 @@ export function SleepTrendsAndRecs({
                         transition={{ duration: 0.18 }}
                         className={`text-[10px] font-mono tabular-nums transition-colors block ${
                           isSelected
-                            ? 'text-[var(--accent-primary)] font-bold'
-                            : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
+                            ? "text-[var(--accent-primary)] font-bold"
+                            : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
                         }`}
                       >
-                        {chartMode === 'stacked'
-                          ? `${totalHours}h`
-                          : `${day.longestStretchHours}h`}
+                        {chartMode === "stacked" ? `${totalHours}h` : `${day.longestStretchHours}h`}
                       </motion.span>
 
                       <span
                         className={`w-full max-w-[38px] h-[145px] rounded-xl p-0.5 flex flex-col justify-end overflow-hidden transition-all ${
                           isSelected
-                            ? 'ring-2 ring-amber-400/70 bg-white/[0.06]'
-                            : 'bg-white/[0.02] group-hover:bg-white/[0.05]'
+                            ? "ring-2 ring-amber-400/70 bg-white/[0.06]"
+                            : "bg-white/[0.02] group-hover:bg-white/[0.05]"
                         }`}
                       >
                         <AnimatePresence initial={false}>
-                          {chartMode === 'stacked' && (
+                          {chartMode === "stacked" && (
                             <motion.span
                               key="nap-bar"
-                              initial={
-                                hasMounted ? { height: 0, opacity: 0 } : false
-                              }
+                              initial={hasMounted ? { height: 0, opacity: 0 } : false}
                               animate={{
                                 height: `${napHeightPct}%`,
                                 opacity: 1,
@@ -573,9 +533,9 @@ export function SleepTrendsAndRecs({
                             ease: [0.16, 1, 0.3, 1],
                           }}
                           className={`w-full block ${
-                            chartMode === 'stacked'
-                              ? 'rounded-b-lg bg-sky-500/85'
-                              : 'rounded-lg bg-amber-400'
+                            chartMode === "stacked"
+                              ? "rounded-b-lg bg-sky-500/85"
+                              : "rounded-lg bg-amber-400"
                           }`}
                           title={`Night sleep: ${day.nightHours}h`}
                         />
@@ -585,14 +545,14 @@ export function SleepTrendsAndRecs({
                         <span
                           className={`text-[11px] font-medium ${
                             isSelected
-                              ? 'text-[var(--text-primary)] font-bold'
-                              : 'text-[var(--text-secondary)]'
+                              ? "text-[var(--text-primary)] font-bold"
+                              : "text-[var(--text-secondary)]"
                           }`}
                         >
                           {day.dayLabel}
                         </span>
                         <span className="text-[10px] font-mono tabular-nums text-[var(--text-secondary)] hidden sm:inline">
-                          {day.dateStr.replace('Oct ', '10/')}
+                          {day.dateStr.replace("Oct ", "10/")}
                         </span>
                       </span>
                     </motion.button>
@@ -617,7 +577,7 @@ export function SleepTrendsAndRecs({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleAddSleepToToday(0.7, 'nap')}
+                  onClick={() => handleAddSleepToToday(0.7, "nap")}
                   className="min-h-[36px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 text-amber-400" />
@@ -625,7 +585,7 @@ export function SleepTrendsAndRecs({
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleAddSleepToToday(1.5, 'night')}
+                  onClick={() => handleAddSleepToToday(1.5, "night")}
                   className="min-h-[36px] px-3 py-1.5 rounded-xl bg-[var(--bg-canvas)] hover:bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 text-sky-400" />
@@ -657,31 +617,22 @@ export function SleepTrendsAndRecs({
                   </div>
                   <div className="text-xs text-[var(--text-secondary)] flex flex-wrap items-center gap-x-3 gap-y-1 font-mono tabular-nums">
                     <span>
-                      Total:{' '}
+                      Total:{" "}
                       <strong className="text-[var(--text-primary)]">
-                        {(
-                          selectedDay.nightHours + selectedDay.napHours
-                        ).toFixed(1)}
-                        h
+                        {(selectedDay.nightHours + selectedDay.napHours).toFixed(1)}h
                       </strong>
                     </span>
                     <span aria-hidden="true">·</span>
                     <span>
-                      Night:{' '}
-                      <strong className="text-sky-400">
-                        {selectedDay.nightHours}h
-                      </strong>
+                      Night: <strong className="text-sky-400">{selectedDay.nightHours}h</strong>
                     </span>
                     <span aria-hidden="true">·</span>
                     <span>
-                      Day Naps:{' '}
-                      <strong className="text-amber-400">
-                        {selectedDay.napHours}h
-                      </strong>
+                      Day Naps: <strong className="text-amber-400">{selectedDay.napHours}h</strong>
                     </span>
                     <span aria-hidden="true">·</span>
                     <span>
-                      Longest Stretch:{' '}
+                      Longest Stretch:{" "}
                       <strong className="text-emerald-400">
                         {selectedDay.longestStretchHours}h
                       </strong>
@@ -709,8 +660,7 @@ export function SleepTrendsAndRecs({
             </div>
 
             <span className="text-xs font-mono tabular-nums text-[var(--text-secondary)]">
-              {Object.values(completedRecs).filter(Boolean).length}/
-              {recommendations.length} Applied
+              {Object.values(completedRecs).filter(Boolean).length}/{recommendations.length} Applied
             </span>
           </div>
 
@@ -732,17 +682,15 @@ export function SleepTrendsAndRecs({
                     }}
                     className={`p-4 rounded-2xl border transition-colors flex flex-col gap-2.5 ${
                       isDone
-                        ? 'bg-emerald-950/20 border-emerald-500/30'
-                        : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)]'
+                        ? "bg-emerald-950/20 border-emerald-500/30"
+                        : "bg-[var(--bg-canvas)] border-[var(--border-subtle)]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                       <span className="font-medium text-[var(--accent-primary)]">
                         {rec.category}
                       </span>
-                      <span className="font-mono tabular-nums">
-                        {rec.timing}
-                      </span>
+                      <span className="font-mono tabular-nums">{rec.timing}</span>
                     </div>
 
                     <h4 className="text-sm font-semibold text-[var(--text-primary)]">
@@ -759,18 +707,16 @@ export function SleepTrendsAndRecs({
                         onClick={rec.onAction}
                         className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${
                           isDone
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]"
                         }`}
                       >
                         <CheckCircle2
                           className={`w-3.5 h-3.5 ${
-                            isDone
-                              ? 'text-emerald-400'
-                              : 'text-[var(--accent-primary)]'
+                            isDone ? "text-emerald-400" : "text-[var(--accent-primary)]"
                           }`}
                         />
-                        <span>{isDone ? 'Applied' : rec.actionLabel}</span>
+                        <span>{isDone ? "Applied" : rec.actionLabel}</span>
                       </button>
                     </div>
                   </motion.div>

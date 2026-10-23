@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "ignorePatterns": [
+    "node_modules/**",
+    ".next/**",
+    ".expo/**",
+    "out/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "next-env.d.ts",
+    "public/sw.js",
+    "public/sw-assets.json",
+    "public/voice-runtime/**",
+    "public/models/**",
+    "bun.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml"
+  ]
+}

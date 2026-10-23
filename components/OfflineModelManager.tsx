@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { HardDrive, DownloadSimple as Download, CheckCircle as CheckCircle2, Trash as Trash2, FileCode, ShieldCheck, SpinnerGap as Loader2 } from '@phosphor-icons/react';
+import React, { useState, useEffect } from "react";
+import {
+  HardDrive,
+  DownloadSimple as Download,
+  CheckCircle as CheckCircle2,
+  Trash as Trash2,
+  FileCode,
+  ShieldCheck,
+  SpinnerGap as Loader2,
+} from "@phosphor-icons/react";
 
-const IDB_NAME = 'kora_offline_models_v1';
-const STORE_NAME = 'model_weights';
-const MODEL_KEY = 'kora-cry-nano-q4-webgpu';
+const IDB_NAME = "kora_offline_models_v1";
+const STORE_NAME = "model_weights";
+const MODEL_KEY = "kora-cry-nano-q4-webgpu";
 
 interface OfflineModelMeta {
   id: string;
@@ -22,7 +30,7 @@ function openModelsDB(): Promise<IDBDatabase> {
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -35,9 +43,7 @@ export function OfflineModelManager({
 }: {
   onOfflineModelStatusChange?: (installed: boolean) => void;
 }) {
-  const [installedMeta, setInstalledMeta] = useState<OfflineModelMeta | null>(
-    null
-  );
+  const [installedMeta, setInstalledMeta] = useState<OfflineModelMeta | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [storagePersisted, setStoragePersisted] = useState(false);
@@ -47,7 +53,7 @@ export function OfflineModelManager({
     // Check IndexedDB for existing downloaded offline model pack
     openModelsDB()
       .then((db) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
+        const tx = db.transaction(STORE_NAME, "readonly");
         const store = tx.objectStore(STORE_NAME);
         const getReq = store.get(MODEL_KEY);
         getReq.onsuccess = () => {
@@ -106,19 +112,19 @@ export function OfflineModelManager({
       const combinedBytes = totalChunks * chunkFloats * 4;
       const meta: OfflineModelMeta = {
         id: MODEL_KEY,
-        name: 'Kora-Cry-Nano-Q4 (WebGPU / Wasm Acoustic Pack)',
-        version: 'v2.4.0-gguf-q4',
+        name: "Kora-Cry-Nano-Q4 (WebGPU / Wasm Acoustic Pack)",
+        version: "v2.4.0-gguf-q4",
         sizeBytes: combinedBytes,
         installedAt: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
+          hour: "2-digit",
+          minute: "2-digit",
         }),
-        sha256: '8f9d2a7e4b1c09e3f5a6d8c21904b7e6',
+        sha256: "8f9d2a7e4b1c09e3f5a6d8c21904b7e6",
       };
 
       const db = await openModelsDB();
       await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const tx = db.transaction(STORE_NAME, "readwrite");
         const store = tx.objectStore(STORE_NAME);
         store.put({
           id: MODEL_KEY,
@@ -132,7 +138,7 @@ export function OfflineModelManager({
       setInstalledMeta(meta);
       onOfflineModelStatusChange?.(true);
     } catch (err) {
-      console.error('Offline model download failed:', err);
+      console.error("Offline model download failed:", err);
     } finally {
       setDownloading(false);
     }
@@ -142,7 +148,7 @@ export function OfflineModelManager({
     try {
       const db = await openModelsDB();
       await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const tx = db.transaction(STORE_NAME, "readwrite");
         tx.objectStore(STORE_NAME).delete(MODEL_KEY);
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
@@ -151,7 +157,7 @@ export function OfflineModelManager({
       setProgress(0);
       onOfflineModelStatusChange?.(false);
     } catch (err) {
-      console.error('Failed to delete offline model:', err);
+      console.error("Failed to delete offline model:", err);
     }
   };
 
@@ -176,12 +182,12 @@ Analyze 5-second infant audio samples and output strict JSON matching CryAnalysi
 """
 `;
     const blob = new Blob([modelfileContent], {
-      type: 'text/plain;charset=utf-8',
+      type: "text/plain;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'Kora-Ollama-Modelfile';
+    a.download = "Kora-Ollama-Modelfile";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -206,9 +212,8 @@ Analyze 5-second infant audio samples and output strict JSON matching CryAnalysi
             Zero-Network Offline Cry Inference Pack
           </h3>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Download quantized acoustic formant weights directly into browser
-            IndexedDB or export a custom Ollama Modelfile for air-gapped 3:00 AM
-            reliability.
+            Download quantized acoustic formant weights directly into browser IndexedDB or export a
+            custom Ollama Modelfile for air-gapped 3:00 AM reliability.
           </p>
         </div>
 
@@ -232,17 +237,15 @@ Analyze 5-second infant audio samples and output strict JSON matching CryAnalysi
                 ·
               </span>
               <span className="font-mono tabular-nums text-[var(--accent-primary)]">
-                {installedMeta ? 'Cached Locally' : 'Optional Download'}
+                {installedMeta ? "Cached Locally" : "Optional Download"}
               </span>
             </div>
             <p className="text-xs text-[var(--text-secondary)]">
               {installedMeta
                 ? `Installed at ${installedMeta.installedAt} · SHA-256 ${installedMeta.sha256.slice(0, 12)}... · ${
-                    storagePersisted
-                      ? 'Persistent Storage Locked'
-                      : 'IndexedDB Active'
+                    storagePersisted ? "Persistent Storage Locked" : "IndexedDB Active"
                   }`
-                : 'Stores quantized Dunstan acoustic formant tensors in IndexedDB for instant zero-latency offline classification.'}
+                : "Stores quantized Dunstan acoustic formant tensors in IndexedDB for instant zero-latency offline classification."}
             </p>
           </div>
 
@@ -272,9 +275,7 @@ Analyze 5-second infant audio samples and output strict JSON matching CryAnalysi
                 {downloading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="font-mono tabular-nums">
-                      Downloading {progress}%
-                    </span>
+                    <span className="font-mono tabular-nums">Downloading {progress}%</span>
                   </>
                 ) : (
                   <>
@@ -301,8 +302,7 @@ Analyze 5-second infant audio samples and output strict JSON matching CryAnalysi
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>
-                100% of infant audio stays on-device when Offline Pack or Local
-                Ollama is active
+                100% of infant audio stays on-device when Offline Pack or Local Ollama is active
               </span>
             </span>
             <span className="font-mono tabular-nums">
