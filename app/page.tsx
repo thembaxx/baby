@@ -39,61 +39,14 @@ import { useNurseryVoice } from "@/hooks/useNurseryVoice";
 import { useClientReady } from "@/hooks/use-client-ready";
 import { readStoredValue } from "@/lib/storage";
 
-interface CareLogItem {
-  id: string;
-  type: "cry" | "feed" | "diaper" | "sleep" | "medication";
-  title: string;
-  detail: string;
-  timestamp: string;
-  minutesAgo: number;
-  confidence?: number;
-  resolved?: boolean;
-}
-
-const INITIAL_LOGS: CareLogItem[] = [
-  {
-    id: "log-1",
-    type: "cry",
-    title: "Tummy Gas / Colic Translated",
-    detail: "Bicycle legs & tummy massage applied · Settled in 4 mins",
-    timestamp: "02:14 AM",
-    minutesAgo: 42,
-    confidence: 84,
-    resolved: true,
-  },
-  {
-    id: "log-2",
-    type: "feed",
-    title: "Bottle Feed (110 ml / 3.7 oz)",
-    detail: "Warm milk · Burped upright on shoulder",
-    timestamp: "12:40 AM",
-    minutesAgo: 136,
-  },
-  {
-    id: "log-3",
-    type: "diaper",
-    title: "Wet Diaper Changed",
-    detail: "Diaper cream applied · Clean & comfortable",
-    timestamp: "12:25 AM",
-    minutesAgo: 151,
-  },
-  {
-    id: "log-4",
-    type: "sleep",
-    title: "Night Sleep Stretch",
-    detail: "Slept 2h 55m · Womb brown noise playing",
-    timestamp: "09:30 PM",
-    minutesAgo: 326,
-  },
-  {
-    id: "log-5",
-    type: "medication",
-    title: "Simethicone Gas Drops (0.3 mL)",
-    detail: "Every 4h schedule · Logged by Parent · Next reminder active",
-    timestamp: "11:30 PM",
-    minutesAgo: 225,
-  },
-];
+import {
+  summariseCareDay,
+  localCareDay,
+  caregiverHandoffText,
+  isCareLogItem,
+  type CareLogItem,
+} from "@/lib/care-summary";
+const INITIAL_LOGS: CareLogItem[] = [];
 
 const INITIAL_ANALYSIS: CryAnalysisResult = {
   primaryCategory: "Gas / Colic",
@@ -134,6 +87,16 @@ export default function HomePage() {
     readStoredValue("nocturne_care_logs_v1", INITIAL_LOGS),
   );
   const careLogs = hasMounted ? storedCareLogs : INITIAL_LOGS;
+  const [careStorageError, setCareStorageError] = useState("");
+  const [careNow, setCareNow] = useState(Date.now);
+  const [careDay, setCareDay] = useState(() => localCareDay());
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCareDay(localCareDay());
+      setCareNow(Date.now());
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [logFilter, setLogFilter] = useState<"all" | "cry" | "feed" | "diaper" | "medication">(
     "all",
   );
@@ -326,7 +289,9 @@ export default function HomePage() {
     try {
       localStorage.setItem("nocturne_care_logs_v1", JSON.stringify(nextLogs));
     } catch {
-      // Ignore storage errors
+      setCareStorageError(
+        "Care records could not be saved. Download a handoff before closing this page.",
+      );
     }
   }, []);
 
@@ -388,21 +353,6 @@ export default function HomePage() {
           customLabel: "1-Minute Calming Timer Finished — Check if Baby Settled",
           onVisualPulse: showHapticPulseBanner,
         });
-        const nowTime = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        saveLogs([
-          {
-            id: `timer-${Date.now()}`,
-            type: "sleep",
-            title: "1-Min Soothing Timer Completed",
-            detail: "Haptic vibration alert triggered for caregiver check",
-            timestamp: nowTime,
-            minutesAgo: 0,
-          },
-          ...careLogs,
-        ]);
       } else {
         setSoothingTimerSecs(soothingTimerSecs - 1);
       }
@@ -421,21 +371,6 @@ export default function HomePage() {
           customLabel: `Care Log Timer Expired: ${careReminderLabel}`,
           onVisualPulse: showHapticPulseBanner,
         });
-        const nowTime = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        saveLogs([
-          {
-            id: `reminder-${Date.now()}`,
-            type: "feed",
-            title: `Timer Alert: ${careReminderLabel}`,
-            detail: "Caregiver notified via tactile haptic vibration pattern",
-            timestamp: nowTime,
-            minutesAgo: 0,
-          },
-          ...careLogs,
-        ]);
       } else {
         setCareReminderSecs(careReminderSecs - 1);
       }
@@ -476,6 +411,7 @@ export default function HomePage() {
         type: "cry",
         title: `${friendlyTitle}`,
         detail: result.immediateSoothingAction,
+        occurredAt: new Date().toISOString(),
         timestamp: nowTime,
         minutesAgo: 0,
         confidence: result.confidenceScore,
@@ -563,6 +499,7 @@ export default function HomePage() {
             type: "feed",
             title: "Baby Fed Just Now",
             detail: "Marked via one-tap caregiver button",
+            occurredAt: new Date().toISOString(),
             timestamp: nowTime,
             minutesAgo: 0,
           },
@@ -576,6 +513,7 @@ export default function HomePage() {
             type: "diaper",
             title: "Fresh Diaper Change",
             detail: "Marked via one-tap caregiver button",
+            occurredAt: new Date().toISOString(),
             timestamp: nowTime,
             minutesAgo: 0,
           },
@@ -589,6 +527,7 @@ export default function HomePage() {
             type: "sleep",
             title: "Baby Fell Asleep",
             detail: "Sleep timer started via one-tap caregiver button",
+            occurredAt: new Date().toISOString(),
             timestamp: nowTime,
             minutesAgo: 0,
           },
@@ -644,24 +583,22 @@ export default function HomePage() {
 
   // Native Web Share API for Caregiver Handoff Summary
   const handleShareSummary = async () => {
-    const friendlyHeading =
-      FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] || analysis.primaryCategory;
-    const summaryText = `Baby Care Update: Latest cry checked — ${friendlyHeading} (${analysis.confidenceScore}% match). What helped: ${analysis.immediateSoothingAction}. Last fed ${minsSinceFeed} mins ago, last diaper ${minsSinceDiaper} mins ago.`;
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: "Baby Care Handoff Update",
-          text: summaryText,
-          url: window.location.href,
-        });
-        return;
-      } catch {
-        // Fallback to clipboard
+    const summaryText = caregiverHandoffText(summariseCareDay(careLogs, localCareDay()));
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Recorded care handoff", text: summaryText });
+        setShareFeedback("Handoff shared with your chosen app. Delivery is unverified.");
+      } else {
+        await navigator.clipboard.writeText(summaryText);
+        setShareFeedback("Recorded care handoff copied.");
       }
+    } catch (error) {
+      setShareFeedback(
+        error instanceof Error && error.name === "AbortError"
+          ? "Sharing cancelled."
+          : "Sharing did not complete. Your records remain on this device.",
+      );
     }
-    navigator.clipboard.writeText(summaryText);
-    setShareFeedback("Update Copied!");
-    setTimeout(() => setShareFeedback(null), 2000);
   };
 
   const toggleLogResolved = (id: string) => {
@@ -692,86 +629,18 @@ export default function HomePage() {
     logFilter === "all" ? true : item.type === logFilter,
   );
 
-  // Aggregate Daily Care Log Summary (Feedings, Diaper Changes, Total Sleep Duration & Cries)
-  const dailySummary = React.useMemo(() => {
-    let feedCount = 0;
-    let totalFeedMl = 0;
-    let diaperCount = 0;
-    let sleepCount = 0;
-    let totalSleepMinutes = 0;
-    let cryCount = 0;
-    let settledCryCount = 0;
-    let medicationCount = 0;
-
-    for (const item of careLogs) {
-      const combinedText = `${item.title} ${item.detail}`;
-      if (item.type === "feed") {
-        feedCount += 1;
-        const mlMatch = combinedText.match(/(\d+)\s*ml/i);
-        if (mlMatch) {
-          totalFeedMl += parseInt(mlMatch[1], 10);
-        } else {
-          totalFeedMl += 110;
-        }
-      } else if (item.type === "diaper") {
-        diaperCount += 1;
-      } else if (item.type === "sleep") {
-        sleepCount += 1;
-        // Parse e.g. "2h 55m", "+1.5h", or default to 45m nap
-        const hmMatch = combinedText.match(/(\d+)\s*h\s*(\d+)\s*m/i);
-        const decimalHourMatch = combinedText.match(/\+?(\d+(?:\.\d+)?)\s*h/i);
-        const minOnlyMatch = combinedText.match(/(\d+)\s*m(?:in)?/i);
-
-        if (hmMatch) {
-          totalSleepMinutes += parseInt(hmMatch[1], 10) * 60 + parseInt(hmMatch[2], 10);
-        } else if (decimalHourMatch) {
-          totalSleepMinutes += Math.round(parseFloat(decimalHourMatch[1]) * 60);
-        } else if (minOnlyMatch) {
-          totalSleepMinutes += parseInt(minOnlyMatch[1], 10);
-        } else {
-          totalSleepMinutes += 45;
-        }
-      } else if (item.type === "cry") {
-        cryCount += 1;
-        if (item.resolved) settledCryCount += 1;
-      } else if (item.type === "medication") {
-        medicationCount += 1;
-      }
-    }
-
-    const sleepHours = Math.floor(totalSleepMinutes / 60);
-    const sleepRemainderMins = totalSleepMinutes % 60;
-    const formattedSleepDuration =
-      totalSleepMinutes === 0
-        ? "0m"
-        : sleepHours > 0
-          ? `${sleepHours}h ${sleepRemainderMins}m`
-          : `${sleepRemainderMins}m`;
-
-    const reportText = `Daily Care Report: ${feedCount} ${
-      feedCount === 1 ? "feeding" : "feedings"
-    } (~${totalFeedMl} ml), ${diaperCount} ${
-      diaperCount === 1 ? "diaper change" : "diaper changes"
-    }, ${formattedSleepDuration} total sleep across ${sleepCount} ${
-      sleepCount === 1 ? "stretch" : "stretches"
-    }${
-      medicationCount > 0
-        ? `, and ${medicationCount} medication ${medicationCount === 1 ? "dose" : "doses"}`
-        : ""
-    }${cryCount > 0 ? ` (${settledCryCount}/${cryCount} cries settled)` : ""}.`;
-
-    return {
-      feedCount,
-      totalFeedMl,
-      diaperCount,
-      sleepCount,
-      formattedSleepDuration,
-      cryCount,
-      settledCryCount,
-      medicationCount,
-      reportText,
-    };
-  }, [careLogs]);
+  const dailySummary = React.useMemo(
+    () => summariseCareDay(careLogs, careDay, careNow),
+    [careLogs, careDay, careNow],
+  );
+  const lastRecordedMinutes = (type: CareLogItem["type"]) => {
+    const times = careLogs
+      .filter(isCareLogItem)
+      .filter((record) => record.type === type && record.occurredAt)
+      .map((record) => Date.parse(record.occurredAt!))
+      .filter((time) => Number.isFinite(time) && time <= careNow);
+    return times.length ? Math.floor((careNow - Math.max(...times)) / 60000) : null;
+  };
 
   const friendlyHeadline =
     FRIENDLY_CATEGORY_TITLE[analysis.primaryCategory] || analysis.primaryCategory;
@@ -780,6 +649,11 @@ export default function HomePage() {
     <MotionConfig reducedMotion="user">
       <div className="min-h-dvh bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col transition-colors">
         <OfflineIndicator />
+        {careStorageError && (
+          <p role="alert" className="p-4">
+            {careStorageError}
+          </p>
+        )}
 
         {/* Live Tactile Haptic Pulse Banner for Noisy Nursery Accessibility */}
         <AnimatePresence>
@@ -1556,6 +1430,7 @@ export default function HomePage() {
                         title: `${medicationName} (${dosage})`,
                         detail: `Every ${frequencyHours}h schedule · Given by ${administeredBy} · ${instructions}`,
                         timestamp,
+                        occurredAt: new Date().toISOString(),
                         minutesAgo: 0,
                       },
                       ...careLogs,
@@ -1564,9 +1439,9 @@ export default function HomePage() {
                 />
 
                 <CaregiverHandoffCard
-                  minsSinceFeed={minsSinceFeed}
-                  minsSinceSleep={minsSinceSleep}
-                  minsSinceDiaper={minsSinceDiaper}
+                  minsSinceFeed={lastRecordedMinutes("feed")}
+                  minsSinceSleep={lastRecordedMinutes("sleep")}
+                  minsSinceDiaper={lastRecordedMinutes("diaper")}
                 />
               </div>
             </div>
@@ -1591,6 +1466,8 @@ export default function HomePage() {
                         ? `Night Sleep Stretch (+${hours}h)`
                         : `Daytime Nap (+${hours}h)`,
                     detail: "Logged from Sleep Schedule & Trend Chart",
+                    durationMinutes: hours * 60,
+                    occurredAt: new Date().toISOString(),
                     timestamp: nowTime,
                     minutesAgo: 0,
                   },
