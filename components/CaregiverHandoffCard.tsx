@@ -26,17 +26,17 @@ interface CaregiverProfile {
 }
 
 const DEFAULT_PROFILE: CaregiverProfile = {
-  babyName: "Maya",
-  ageLabel: "8 weeks old",
-  bottleInstructions: "120 ml (4 oz) warm breastmilk or formula · Burp halfway through",
-  favoriteSoothing: "Hold upright on left shoulder + play Womb Brown Noise",
-  emergencyContact: "Mom & Dad · (555) 234-8910",
+  babyName: "",
+  ageLabel: "",
+  bottleInstructions: "",
+  favoriteSoothing: "",
+  emergencyContact: "",
 };
 
 interface CaregiverHandoffCardProps {
-  minsSinceFeed: number;
-  minsSinceSleep: number;
-  minsSinceDiaper: number;
+  minsSinceFeed: number | null;
+  minsSinceSleep: number | null;
+  minsSinceDiaper: number | null;
 }
 
 export function CaregiverHandoffCard({
@@ -57,12 +57,9 @@ export function CaregiverHandoffCard({
     try {
       localStorage.setItem("kora_caregiver_profile_v1", JSON.stringify(profile));
     } catch {
-      // Ignore storage errors
+      window.alert("Caregiver notes could not be saved. Keep a separate copy before closing.");
     }
   };
-
-  const nextFeedInMins = Math.max(0, 180 - minsSinceFeed);
-  const nextNapInMins = Math.max(0, 75 - minsSinceSleep);
 
   return (
     <SpotlightCard className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col gap-5">
@@ -79,7 +76,7 @@ export function CaregiverHandoffCard({
               <span>{profile.ageLabel}</span>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-              Caring for {profile.babyName} Right Now
+              Care notes {profile.babyName ? `for ${profile.babyName}` : "for your family"}
             </h2>
           </div>
         </div>
@@ -90,10 +87,10 @@ export function CaregiverHandoffCard({
         <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-primary)]">
             <Clock className="w-4 h-4" />
-            <span>Next Feeding Window</span>
+            <span>Last recorded feeding</span>
           </div>
           <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">
-            {nextFeedInMins === 0 ? "Ready for a feed now" : `In about ${nextFeedInMins} minutes`}
+            {minsSinceFeed === null ? "No dated feeding recorded" : `${minsSinceFeed} minutes ago`}
           </p>
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             {profile.bottleInstructions}
@@ -133,7 +130,13 @@ export function CaregiverHandoffCard({
               {profile.emergencyContact}
             </p>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5 tabular-nums">
-              Next nap in ~{nextNapInMins}m · Last diaper {minsSinceDiaper}m ago
+              {minsSinceSleep === null
+                ? "No dated sleep recorded"
+                : `Last recorded sleep ${minsSinceSleep}m ago`}{" "}
+              ·{" "}
+              {minsSinceDiaper === null
+                ? "No dated diaper change recorded"
+                : `Last recorded diaper ${minsSinceDiaper}m ago`}
             </p>
           </div>
         </div>
