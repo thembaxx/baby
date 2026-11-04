@@ -88,13 +88,17 @@ export default function HomePage() {
   );
   const careLogs = hasMounted ? storedCareLogs : INITIAL_LOGS;
   const [careStorageError, setCareStorageError] = useState("");
-  const [careNow, setCareNow] = useState(Date.now);
-  const [careDay, setCareDay] = useState(() => localCareDay());
+  const [careNow, setCareNow] = useState(0);
+  const [careDay, setCareDay] = useState("1970-01-01");
+  const careClockReady = hasMounted && careNow > 0;
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setCareDay(localCareDay());
-      setCareNow(Date.now());
-    }, 30_000);
+    const updateClock = () => {
+      const now = Date.now();
+      setCareDay(localCareDay(now));
+      setCareNow(now);
+    };
+    updateClock();
+    const timer = window.setInterval(updateClock, 30_000);
     return () => window.clearInterval(timer);
   }, []);
   const [logFilter, setLogFilter] = useState<"all" | "cry" | "feed" | "diaper" | "medication">(
@@ -1340,6 +1344,7 @@ export default function HomePage() {
 
                       <button
                         type="button"
+                        disabled={!careClockReady}
                         onClick={() => {
                           copyCommand(dailySummary.reportText, "daily-report");
                           triggerNurseryHaptic("step-checked", {
@@ -1404,7 +1409,7 @@ export default function HomePage() {
 
                     {/* Plain-English Concise Daily Report Line */}
                     <div className="px-3.5 py-2.5 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] leading-relaxed">
-                      {dailySummary.reportText}
+                      {careClockReady ? dailySummary.reportText : "Preparing today’s care summary…"}
                     </div>
                   </div>
                 </div>
@@ -1853,7 +1858,7 @@ export default function HomePage() {
                       type="text"
                       value={quickLogNote}
                       onChange={(e) => setQuickLogNote(e.target.value)}
-                      className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-amber-400/50"
+                      className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs [@media(pointer:coarse)]:text-[max(0.75rem,16px)] text-[var(--text-primary)] focus:outline-none focus:border-amber-400/50"
                     />
                   </div>
 
