@@ -16,7 +16,7 @@
     "format:check": "oxfmt --check ."
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.121",
+    "@ai-sdk/openai": "^4.0.122",
     "@google/genai": "^2.32.0",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^6.0.2",
@@ -24,7 +24,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@types/three": "^0.187.0",
     "@vercel/analytics": "^2.0.1",
-    "ai": "^7.0.177",
+    "ai": "^7.0.179",
     "autoprefixer": "^10.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
